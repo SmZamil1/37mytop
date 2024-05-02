@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Referrals Leaderboard</title>
+    <style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600&family=Palanquin+Dark:wght@700&display=swap');
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #141523;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .attention-box {
+            background-color: #141523;
+            padding: 15px;
+            width: 90%;
+            height: 40px;
+            border-radius: 15px 15px 15px 0 ;
+            margin-bottom: 20px;
+            color: #fff;
+            font-size: 18px;
+            font-family: 'Nunito';
+            font-weight: bold;
+            text-align: center;
+            box-shadow: inset -3px -3px 20px #000, inset 3px 3px 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .leaderboard-container {
+            position: relative;
+            top: 8%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #2D3047;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-image {
+            position: relative;
+            width: 100%;
+            height: auto;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            margin-bottom: 0.01px;
+        }
+
+        .weekly-timer-box {
+            background-color: #1D3047;
+            padding: 10px;
+            border-radius: 0 10px 0 10px;
+            box-shadow: inset -3px -3px 15px #99F8F8, inset 3px 3px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .weekly-timer {
+            font-size: 18px;
+            color: #79F8F8;
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .leaderboard {
+            width: 400px;
+            perspective: 1000px;
+        }
+
+        .leaderboard-entry {
+            position: relative;
+            width: 100%;
+            height: 70px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            backdrop-filter: blur(25px);
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
+            transform-style: preserve-3d;
+            transform: translateY(100%);
+            opacity: 0;
+            transition: transform 0.5s ease, opacity 0.5s ease, box-shadow 0.3s ease;
+        }
+
+        .leaderboard-entry.active {
+            opacity: 1;
+            transform: translateY(0);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .top-badge {
+            position: absolute;
+            left: 7%;
+            transform: translate(-50%, -50%);
+            font-size: 25px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            z-index: 1;
+        }
+
+        .top-1 .top-badge { top: 43%;font-size: 56px; background: none; }
+        .top-2 .top-badge { top: 38%;font-size: 48px; background: none; }
+        .top-3 .top-badge { top: 35%;font-size: 44px; background: none; }
+
+        .top-1.active { background: linear-gradient(90deg, gold, #F8C199, gold); }
+        .top-2.active { background: linear-gradient(90deg, silver, #E5E4E2, silver); }
+        .top-3.active { background: linear-gradient(90deg,  #FF5733, #E5E4E2, #FF5733); }
+        
+      
+        .leaderboard-name-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-left: -10px;
+        }
+
+        .leaderboard-name {
+            font-size: 20px;
+            font-family: 'Palanquin Dark';
+            font-weight: bold;
+            position: absolute ;
+            right: 8%;
+            font-weight: bold;
+            color: #09f;
+            margin-bottom: 4px;
+            position: relative;
+            z-index: 0;
+            transform: translateZ(0);
+        }
+
+        .leaderboard-refered {
+            
+            font-weight: bold;
+            font-family: 'Nunito', sans-serif; 
+            color: #999;
+            margin-bottom: 11px;
+        }
+      
+        .leaderboard-refered-1-3 {
+            font-size: 18px;
+            font-family: 'Nunito';
+            font-weight: bold;
+            color: #2D3047;   
+        }
+        
+       
+        .leaderboard-rewards {
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #3498db;
+            padding: 5px 10px;
+            border-radius: 0 5px 0 5px;
+            margin-left: 10px;
+            position: relative;
+            cursor: pointer;
+            z-index: 0;
+            transform: translateZ(0);
+            transition: background-color 0.3s ease-in-out, border-radius 0.3s ease-in-out;
+        }
+
+        .leaderboard:hover .leaderboard-rewards {
+            background-color: #2D3047;
+            border-radius: 5px 0 5px 0;
+            box-shadow: 0 0 5px rgba(255,255,255,0.35);
+        }
+      
+      
+        .leaderboard-rewards-1-3 {
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #3498db;
+            padding: 5px 10px;
+            box-shadow: 0 0 5px rgba(255,255,255,0.35);
+            border-radius: 0 5px 0 5px;
+            margin-left: 10px;
+            position: relative;
+            z-index: 0;
+            transform: translateZ(0);
+            transition: background-color 0.3s ease-in-out, border-radius 0.3s ease-in-out;
+          
+      }
+        
+        .leaderboard:hover .leaderboard-rewards-1-3{
+            background-color: silver;
+            border-radius: 5px 0 5px 0;
+             box-shadow: 0 0 5px rgba(255,255,255,0.35);
+      }
+
+        .serial-number {
+            border: none;
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            background-color: #3498db;
+            margin-right: 10px;
+            position: relative;
+            z-index: 0;
+            transform: translateZ(0);
+        }
+
+        .leaderboard:hover .serial-number {
+            background-color: transparent;
+            box-shadow: -2px -2px 15px rgba(255, 255, 255, 0.2);
+           
+        }
+
+        .serial-number.active {
+            background-color: #3498db;
+             box-shadow: -2px -2px 15px rgba(255, 255, 255, 0.2);
+           
+        }
+
+        .serial-number.active:hover {
+            background-color: transparent;
+            box-shadow: -2px -2px 15px rgba(255, 255, 255, 0.2);
+           
+        }
+        
+        .rules-button {
+            position: absolute;
+            top: 218px;
+            right: 30px;
+            background-color: #01EFBF;
+            padding: 10px 20px;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 0 5px 0 5px;
+            box-shadow: 0 0 10px rgba(255,255,255,0.35);
+            transition: background-color 0.3s ease-in-out, border-radius 0.3s ease-in-out;
+        }
+
+        .rules-button:hover {
+            background-color: #191523;
+            border-radius: 5px 0 5px 0;
+        }
+        
+        .rules-popup {
+            position: fixed;
+            top: 39%;
+            left: 57%;
+            height: 30%;
+            width: 45%;
+            background-color: rgba(225,220,220,0.4);
+            padding: 8px;
+            -webkit-backdrop-filter: blur(15px);
+                    backdrop-filter: blur(15px);
+            border-radius: 15px 0 15px 15px;
+            box-shadow: inset -2px -2px 15px rgba(255, 255, 255, 0.2);
+            display: none;
+            max-width: 80%;
+            z-index: 1000;
+            transform: translate(-50%, -50%);
+            transition:opacity 2s,transform 5s;
+ 
+  
+        }
+        
+         
+
+        .rules-popup p {
+            
+            text-decoration: solid;
+            color: #fff;
+            font-weight: bold;
+            font-family: 'Palanquin Dark', sans-serif;
+            
+        }
+         
+        .rules-popup h5 {
+            text-decoration: solid;
+            font-weight: bold;
+            text-align: center;
+            font-family: 'Palanquin Dark';
+            color: lime;
+            margin: 0;
+            font-size: 15px;
+            
+        }
+
+        .close-popup {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background-color: #191623;
+            border-radius: 0 0 0 8px;
+            color: white;
+            font-size: 35px;
+            cursor: pointer;
+        }
+        
+
+
+     </style>
+</head>
+<body>
+     
+    <div class="rules-popup" id="rulesPopup">
+        <span class="close-popup" onclick="toggleRulesPopup()">✖</span>
+        <h5>Leaderboard Participate Rules:</h5>
+        <p>1. Must have valid refer.</p>
+        <p>2. Must Claim bonus at least one time</p>
+        <p>3. Must Join our Communities</p>
+        <h5> Leaderboard update in every 24 hours. Thank you for join us</h5>
+    </div>
+       <div class="leaderboard-container">
+        <img class="header-image" src="https://freecash.com/public/img/monthly-leaderboard-5k.png" alt="Header Image">
+ 
+
+        <div class="weekly-timer-box">
+            <p class="weekly-timer" id="weekly-timer">Time Remaining: 7d 00h 00m 00s</p>
+            </div>
+       <button class="rules-button" onclick="toggleRulesPopup()">Rules</button>     
+            
+           <div class="attention-box">
+        <strong>Every weak top referrals can earn upto 1000 $NOT<br>
+        Leaderboard will reset in every 7 days</strong>
+    </div>
+
+        
+            <div class="leaderboard">
+            <!-- Top 3 entries -->
+            <div class="leaderboard-entry top-1 active">
+                <div class="top-badge top-1">🥇</div>
+                <div class="leaderboard-name-container">
+                    <span class="leaderboard-name">Sm Zamil</span>
+                    <span class="leaderboard-refered-1-3">  Total Referred: 56</span>
+                </div>
+                <div class="leaderboard-rewards-1-3">Reward: 100 $NOT</div>
+            </div>
+            <div class="leaderboard-entry top-2 active">
+                <div class="top-badge top-2">🥈</div>
+                <div class="leaderboard-name-container">
+                    <span class="leaderboard-name">Sm Zamil</span>
+                    <span class="leaderboard-refered-1-3">Total Referred: 54</span>
+                </div>
+                <div class="leaderboard-rewards-1-3">Reward: 80 $NOT</div>
+            </div>
+            <div class="leaderboard-entry top-3 active">
+                <div class="top-badge top-3">🥉</div>
+                <div class="leaderboard-name-container">
+                    <span class="leaderboard-name">Sm Zamil</span>
+                    <span class="leaderboard-refered-1-3">Total Referred: 51</span>
+                </div>
+               
+                <div class="leaderboard-rewards-1-3">Reward: 50 $NOT</div>
+            </div>
+            <!-- Add entries for top 4 to 10 with 3D serial numbers -->
+            <div class="leaderboard-entry">
+                <div class="serial-number">4</div>
+                <div class="leaderboard-name-container">
+                    <span class="leaderboard-name">Sm Zamil</span>
+                    <span class="leaderboard-refered">Total Referred: 48</span>
+                </div>
+                <div class="leaderboard-rewards">Reward: 30 $NOT</div>
+            </div>
+            <div class="leaderboard-entry">
+                <div class="serial-number">5</div>
+                <div class="leaderboard-name-container">
+                    <span class="leaderboard-name">Sm Zamil</span>
+                    <span class="leaderboard-refered">Total Referred: 40</span>
+                </div>
+                <div class="leaderboard-rewards">Reward: 20 $NOT</div>
+            </div>
+            <div class="leaderboard-entry">
+                <div class="serial-number">6</div>
+                <div class="leaderboard-name-container">
+                    <span class="leaderboard-name">Sm Zamil</span>
+                    <span class="leaderboard-refered">Total Referred: 35</span>
+                </div>
+                <div class="leaderboard-rewards">Reward: 10 $NOT</div>
+            </div>
+            <div class="leaderboard-entry">
+                <div class="serial-number">7</div>
+                <div class="leaderboard-name-container">
+                    <span class="leaderboard-name">Sm Zamil</span>
+                    <span class="leaderboard-refered">Total Referred: 30</span>
+                </div>
+                <div class="leaderboard-rewards">Reward: 8 $NOT</div>
+            </div>
+            <div class="leaderboard-entry">
+                <div class="serial-number">8</div>
+                <div class="leaderboard-name-container">
+                    <span class="leaderboard-name">Sm Zamil</span>
+                    <span class="leaderboard-refered">Total Referred: 25</span>
+                </div>
+                <div class="leaderboard-rewards">Reward: 5 $NOT</div>
+            </div>
+            <div class="leaderboard-entry">
+                <div class="serial-number">9</div>
+                <div class="leaderboard-name-container">
+                    <span class="leaderboard-name">Sm Zamil</span>
+                    <span class="leaderboard-refered">Total Referred: 10</span>
+                </div>
+                <div class="leaderboard-rewards">Reward: 2.5 $NOT</div>
+            </div>
+            <div class="leaderboard-entry">
+                <div class="serial-number">10</div>
+                <div class="leaderboard-name-container">
+                    <span class="leaderboard-name">Sm Zamil</span>
+                    <span class="leaderboard-refered">Total Referred: 5</span>
+                </div>
+                <div class="leaderboard-rewards">Reward: 1.5 $NOT</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+                // Simulate the appearance of entries
+        setTimeout(() => {
+            const entries = document.querySelectorAll('.leaderboard-entry');
+            entries.forEach((entry, index) => {
+                setTimeout(() => {
+                    entry.classList.add('active');
+                }, index * 300);
+            });
+        }, 500);
+
+    // Countdown Timer
+    const timerElement = document.getElementById('weekly-timer');
+    let startDate = localStorage.getItem('startDate');
+    let endDate;
+
+    if (!startDate) {
+        startDate = new Date();
+        localStorage.setItem('startDate', startDate);
+        endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 7);
+    } else {
+        startDate = new Date(startDate);
+        endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 7);
+        const now = new Date();
+        if (now > endDate) {
+            localStorage.setItem('startDate', now);
+            startDate = now;
+            endDate = new Date(now);
+            endDate.setDate(endDate.getDate() + 7);
+        }
+    }
+
+    function updateTimer() {
+        const now = new Date();
+        const timeRemaining = endDate - now;
+
+        const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+
+        timerElement.textContent = `Time Remaining: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+
+        if (timeRemaining < 0) {
+            timerElement.textContent = 'Time Expired!';
+            // Reset timer for next 7 days
+            localStorage.setItem('startDate', now);
+            startDate = now;
+            endDate = new Date(now);
+            endDate.setDate(endDate.getDate() + 7);
+        }
+    }
+
+    setInterval(updateTimer, 1000);
+    updateTimer(); // Initial call
+
+    //Rules Popup 
+    function toggleRulesPopup() {
+        const popup = document.getElementById('rulesPopup');
+        popup.style.display = (popup.style.display === 'block') ? 'none' : 'block';
+    }
+
+
+
+        //Rules Popup 
+        function toggleRulesPopup() {
+            const popup = document.getElementById('rulesPopup');
+            popup.style.display = (popup.style.display === 'block') ? 'none' : 'block';
+        }
+      
+    </script>
+</body>
+</html>
+

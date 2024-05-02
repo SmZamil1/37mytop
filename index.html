@@ -427,15 +427,41 @@
                 <div class="leaderboard-rewards">Reward: 1.5 $NOT</div>
             </div>
         </div>
-    </div><script>
+    </div>
+
+    <script>
+
+                // Simulate the appearance of entries
+        setTimeout(() => {
+            const entries = document.querySelectorAll('.leaderboard-entry');
+            entries.forEach((entry, index) => {
+                setTimeout(() => {
+                    entry.classList.add('active');
+                }, index * 300);
+            });
+        }, 500);
+
     // Countdown Timer
     const timerElement = document.getElementById('weekly-timer');
-    let endDate = new Date(localStorage.getItem('endDate'));
+    let startDate = localStorage.getItem('startDate');
+    let endDate;
 
-    if (!endDate || endDate.getTime() < Date.now()) {
-        endDate = new Date();
+    if (!startDate) {
+        startDate = new Date();
+        localStorage.setItem('startDate', startDate);
+        endDate = new Date(startDate);
         endDate.setDate(endDate.getDate() + 7);
-        localStorage.setItem('endDate', endDate);
+    } else {
+        startDate = new Date(startDate);
+        endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 7);
+        const now = new Date();
+        if (now > endDate) {
+            localStorage.setItem('startDate', now);
+            startDate = now;
+            endDate = new Date(now);
+            endDate.setDate(endDate.getDate() + 7);
+        }
     }
 
     function updateTimer() {
@@ -452,9 +478,10 @@
         if (timeRemaining < 0) {
             timerElement.textContent = 'Time Expired!';
             // Reset timer for next 7 days
-            endDate = new Date();
+            localStorage.setItem('startDate', now);
+            startDate = now;
+            endDate = new Date(now);
             endDate.setDate(endDate.getDate() + 7);
-            localStorage.setItem('endDate', endDate);
         }
     }
 
@@ -466,7 +493,16 @@
         const popup = document.getElementById('rulesPopup');
         popup.style.display = (popup.style.display === 'block') ? 'none' : 'block';
     }
-</script>
+
+
+
+        //Rules Popup 
+        function toggleRulesPopup() {
+            const popup = document.getElementById('rulesPopup');
+            popup.style.display = (popup.style.display === 'block') ? 'none' : 'block';
+        }
+      
+    </script>
 </body>
 </html>
 

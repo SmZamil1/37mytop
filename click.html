@@ -5,16 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dark Background Page</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Poltawski+Nowy:ital,wght@0,400..700;1,400..700&display=swap');
   body {
     margin: 0;
     padding: 0;
     background-color: #000;
     color: #fff;
-    font-family: Arial, sans-serif;
+    font-family: "Poltawski Nowy", serif;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    height: 150vh;
     overflow: hidden; /* Hide scrollbar */
   }
   
@@ -62,12 +63,12 @@
 </div>
 
 <script>
-  // Automatically scroll to the bottom of the page continuously
-  function scrollDown() {
-    window.scrollBy(0, 1); // Scroll down by 1 pixel
-  }
-  
-  setInterval(scrollDown, 10); // Scroll every 10 milliseconds
+// Add JavaScript to scroll to the bottom of the page after a slight delay
+window.onload = function() {
+    setTimeout(function() {
+        window.scrollTo(0, document.body.scrollHeight);
+    }, 10);
+}
 </script>
 
 </body>

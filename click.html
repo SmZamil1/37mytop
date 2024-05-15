@@ -15,8 +15,9 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 150vh;
-    overflow: hidden; /* Hide scrollbar */
+    height: 130vh;
+    overflow-y: scroll; /* Show scrollbar */
+    scroll-behavior: smooth; /* Smooth scrolling */
   }
   
   .container {
@@ -63,12 +64,10 @@
 </div>
 
 <script>
-// Add JavaScript to scroll to the bottom of the page after a slight delay
-window.onload = function() {
-    setTimeout(function() {
-        window.scrollTo(0, document.body.scrollHeight);
-    }, 10);
-}
+// Add JavaScript to scroll to the bottom of the page after a delay
+setTimeout(function() {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}, 0);
 </script>
 
 </body>

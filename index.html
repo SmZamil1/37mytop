@@ -23,11 +23,14 @@
             const username = getUsernameFromData();
             const usernameElement = document.createElement('div');
             usernameElement.textContent = username;
-            usernameElement.style.color = 'red';
+            usernameElement.style.color = '#99f9f9';
             usernameElement.style.textAlign = 'center';
+            usernameElement.style.fontFamily = 'Nunito';
+            usernameElement.style.fontWeight = 'bold';
+            usernameElement.style.fontSize = '20px';
             document.body.insertBefore(usernameElement, document.body.firstChild);
         });
- </script>
+    </script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poltawski+Nowy:ital,wght@0,400..700;1,400..700&display=swap');
   body {
@@ -78,24 +81,12 @@
             display: none; /* Hide the pre element */
         }
 
-        .hint {
-            text-align: center;
-            color: #99f9f9;
-            font-size: 20px;
-            border: 1px;
-            border-radius: 5px;
-            font-weight: bold;
-            line-height: 1;
-            margin-bottom: 20px;
-        }
 </style>
 </head>
 <body>
 
 <pre><code id="webview_data"></code></pre>
-<div class="hint">
-    <span id="webview_data_status" class="status_need">hi</span>
-        </div>
+
 <div class="container">
   <div class="text">
     <div>Notooin results is finally ready...</div>

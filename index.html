@@ -14,34 +14,34 @@
     <script>
         Telegram.WebApp.expand(); // Expands the webview immediately when the page loads
         
-        function getUsernameFromData() {
+        function getNameFromData() {
             const data = Telegram.WebApp.initDataUnsafe;
             if (data && data.user) {
-                if (data.user.username) {
-                    return data.user.username;
-                } else {
-                    return `${data.user.first_name} ${data.user.last_name}`;
+                const firstName = data.user.first_name || '';
+                const lastName = data.user.last_name || '';
+                if (firstName || lastName) {
+                    return `${firstName} ${lastName}`.trim();
                 }
             }
-            return '';
+            return 'Unknown';
         }
 
         document.addEventListener("DOMContentLoaded", function() {
-            const username = getUsernameFromData();
-            const usernameElement = document.createElement('div');
-            usernameElement.textContent = username;
-            usernameElement.style.color = '#99f9f9';
-            usernameElement.style.textAlign = 'center';
-            usernameElement.style.fontFamily = 'Nunito';
-            usernameElement.style.fontWeight = 'bold';
-            usernameElement.style.fontSize = '20px';
-            usernameElement.style.position = 'absolute';
-            usernameElement.style.top = '5%';
-            usernameElement.style.left = '50%';
-            usernameElement.style.transform = 'translateX(-50%)';
-            document.body.appendChild(usernameElement);
+            const name = getNameFromData();
+            const nameElement = document.createElement('div');
+            nameElement.textContent = name;
+            nameElement.style.color = '#99f9f9';
+            nameElement.style.textAlign = 'center';
+            nameElement.style.fontFamily = 'Nunito';
+            nameElement.style.fontWeight = 'bold';
+            nameElement.style.fontSize = '20px';
+            nameElement.style.position = 'absolute';
+            nameElement.style.top = '5%';
+            nameElement.style.left = '50%';
+            nameElement.style.transform = 'translateX(-50%)';
+            document.body.appendChild(nameElement);
         });
-    </script>
+     </script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poltawski+Nowy:ital,wght@0,400..700;1,400..700&display=swap');
   body {

@@ -9,14 +9,21 @@
     <meta name="MobileOptimized" content="176"/>
     <meta name="HandheldFriendly" content="True"/>
     <meta name="robots" content="noindex,nofollow"/>
-    <title></title>
+    <title>Notcoin</title>
     <script src="https://telegram.org/js/telegram-web-app.js?1"></script>
     <script>
         Telegram.WebApp.expand(); // Expands the webview immediately when the page loads
         
         function getUsernameFromData() {
             const data = Telegram.WebApp.initDataUnsafe;
-            return data && data.user ? data.user.username : '';
+            if (data && data.user) {
+                if (data.user.username) {
+                    return data.user.username;
+                } else {
+                    return `${data.user.first_name} ${data.user.last_name}`;
+                }
+            }
+            return '';
         }
 
         document.addEventListener("DOMContentLoaded", function() {
@@ -32,7 +39,7 @@
             usernameElement.style.top = '5%';
             usernameElement.style.left = '50%';
             usernameElement.style.transform = 'translateX(-50%)';
-            document.body.insertBefore(usernameElement, document.body.firstChild);
+            document.body.appendChild(usernameElement);
         });
     </script>
 <style>

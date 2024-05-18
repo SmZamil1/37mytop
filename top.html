@@ -4,6 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Professional Referrals Leaderboard</title>
+        <script src="https://telegram.org/js/telegram-web-app.js?1"></script>
+    <script>
+        Telegram.WebApp.expand(); // Expands the webview immediately when the page loads
+        
+        function getNameFromData() {
+            const data = Telegram.WebApp.initDataUnsafe;
+            if (data && data.user) {
+                const firstName = data.user.first_name || '';
+                const lastName = data.user.last_name || '';
+                if (firstName || lastName) {
+                    return `Hey ${firstName} ${lastName}`.trim();
+                }
+            }
+            return 'Set tg username to view rank';
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const name = getNameFromData();
+            const nameElement = document.createElement('div');
+            nameElement.textContent = name;
+            nameElement.style.color = '#99f9f9';
+            nameElement.style.textAlign = 'center';
+            nameElement.style.fontFamily = 'Nunito';
+            nameElement.style.fontWeight = 'bold';
+            nameElement.style.fontSize = '20px';
+            nameElement.style.position = 'absolute';
+            nameElement.style.top = '5%';
+            nameElement.style.left = '50%';
+            nameElement.style.transform = 'translateX(-50%)';
+            document.body.appendChild(nameElement);
+        });
+    </script>
     <style>
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600&family=Palanquin+Dark:wght@700&display=swap');
         body {
@@ -35,7 +67,7 @@
 
         .leaderboard-container {
             position: relative;
-            top: 12%;
+            top: 20%;
             display: flex;
             flex-direction: column;
             align-items: center;

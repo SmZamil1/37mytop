@@ -24,13 +24,13 @@
             const name = getNameFromData();
             const nameElement = document.createElement('div');
             nameElement.textContent = name;
-            nameElement.style.color = '#99f9f9';
+            nameElement.style.color = 'gold';
             nameElement.style.textAlign = 'center';
             nameElement.style.fontFamily = 'Nunito';
             nameElement.style.fontWeight = 'bold';
             nameElement.style.fontSize = '20px';
             nameElement.style.position = 'absolute';
-            nameElement.style.top = '0%';
+            nameElement.style.top = '-3%';
             nameElement.style.left = '50%';
             nameElement.style.transform = 'translateX(-50%)';
             document.body.appendChild(nameElement);
@@ -344,7 +344,10 @@
             font-size: 35px;
             cursor: pointer;
         }
-        
+
+                pre {
+            display: none; /* Hide the pre element */
+                }
 
 
      </style>

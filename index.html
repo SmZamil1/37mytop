@@ -7,6 +7,35 @@
     <meta name="theme-color" content="#f19e36">
 
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+<script src="https://telegram.org/js/telegram-web-app.js?1"></script>
+    <script>
+        Telegram.WebApp.expand(); // Expands the webview immediately when the page loads
+
+        function getNameFromData() {
+            const data = Telegram.WebApp.initDataUnsafe;
+            if (data && data.user) {
+                const firstName = data.user.first_name || '';
+                const lastName = data.user.last_name || '';
+                if (firstName || lastName) {
+                    return `Hey ${firstName} ${lastName}`.trim();
+                }
+            }
+            return 'Set tg username to view rank';
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const name = getNameFromData();
+            const nameElement = document.createElement('div');
+            nameElement.textContent = name;
+            nameElement.classList.add('username');
+            document.body.prepend(nameElement);
+
+            // Adjust leaderboard margin-top based on username element height
+            const usernameHeight = nameElement.offsetHeight;
+            const leaderboardContainer = document.querySelector('.leaderboard-container');
+            leaderboardContainer.style.marginTop = `${usernameHeight + 20}px`; // 20px for additional spacing
+        });
+    </script>
  <style>
         body {
             margin: 0;
@@ -17,9 +46,28 @@
             font-family: Arial, sans-serif;
             color: #ffffff; /* Text color, adjust as needed */
         }
+        .username {
+    color: gold;
+    text-align: center;
+    font-family: 'Nunito';
+    font-weight: bold;
+    font-size: 20px;
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    padding: 10px 0;
+    background-color: #141523;
+    z-index: 1000;
+        }
         .content {
             padding: 20px;
             text-align: center;
+        }
+        pre {
+    display: none; /* Hide the pre element */
+ 
         }
     </style>
 </head>

@@ -1,106 +1,86 @@
-// Initialize CloudStorage
-const storage = CloudStorage;
+const body = document.body;
+const image = body.querySelector("#coin");
+const h1 = body.querySelector("h1");
+let coins;
+let total;
+let power;
+let count;
 
-// Initialize variables
-let coins, total, power, count;
-
-// Function to initialize or get values from storage
-function initializeValues() {
-    // Get coins value from storage, if not available set default value
-    storage.getItem("coins", (err, value) => {
-        if (err) {
-            console.error("Error getting coins:", err);
-            coins = 0;
-        } else {
-            coins = parseInt(value) || 0;
-        }
-    });
-
-    // Get total value from storage, if not available set default value
-    storage.getItem("total", (err, value) => {
-        if (err) {
-            console.error("Error getting total:", err);
-            total = 500;
-        } else {
-            total = parseInt(value) || 500;
-        }
-    });
-
-    // Get power value from storage, if not available set default value
-    storage.getItem("power", (err, value) => {
-        if (err) {
-            console.error("Error getting power:", err);
-            power = 500;
-        } else {
-            power = parseInt(value) || 500;
-        }
-    });
-
-    // Get count value from storage, if not available set default value
-    storage.getItem("count", (err, value) => {
-        if (err) {
-            console.error("Error getting count:", err);
-            count = 1;
-        } else {
-            count = parseInt(value) || 1;
-        }
+// Function to send data to Telegram Cloud Storage
+function sendDataToTelegramCloudStorage(data) {
+    telegram.answerWebAppQuery({
+        query_id: "unique_id",
+        data: data
     });
 }
 
-// Click event listener for the coin image
-document.getElementById("coin").addEventListener("click", (e) => {
+// Function to retrieve data from Telegram Cloud Storage
+function retrieveDataFromTelegramCloudStorage(userId) {
+    // Make a request to your bot to retrieve data associated with the user ID
+    // Use Telegram Bot API methods to handle the request and retrieve data securely
+    // Return the retrieved data to the web app
+}
+
+// Retrieve data from Telegram Cloud Storage on page load
+telegram.getStorageData({}, (data) => {
+    coins = data.coins || 0;
+    total = data.total || 500;
+    power = data.power || 500;
+    count = data.count || 1;
+
+    // Update UI based on retrieved data
+    h1.textContent = Number(coins).toLocaleString();
+    body.querySelector("#total").textContent = `/${total}`;
+    body.querySelector("#power").textContent = power;
+    body.querySelector(".progress").style.width = (100 * power / total) + "%";
+});
+
+// Event listener for clicking on the image
+image.addEventListener("click", (e) => {
     let x = e.offsetX;
     let y = e.offsetY;
 
-    // Update coins and power
-    if (power > 0) {
-        coins++;
-        power--;
-        updateValues();
+    // Vibrate the device (optional)
+    navigator.vibrate(5);
+
+    // Retrieve data from Telegram Cloud Storage
+    let coins = retrieveDataFromTelegramCloudStorage(userId); // Example: Retrieve user's coins
+    
+    // Update UI based on retrieved data
+    if (coins !== null) {
+        h1.textContent = Number(coins).toLocaleString();
     }
 
-    // Apply transformations based on click position
-    // (Assuming you have functions for these transformations)
-    applyTransformations(x, y);
+    // Perform image transformations based on click position
+    if (x < 150 && y < 150) {
+        image.style.transform = "translate(-0.25rem, -0.25rem) skewY(-10deg) skewX(5deg)";
+    } else if (x < 150 && y > 150) {
+        image.style.transform = "translate(-0.25rem, 0.25rem) skewY(-10deg) skewX(5deg)";
+    } else if (x > 150 && y > 150) {
+        image.style.transform = "translate(0.25rem, 0.25rem) skewY(10deg) skewX(-5deg)";
+    } else if (x > 150 && y < 150) {
+        image.style.transform = "translate(0.25rem, -0.25rem) skewY(10deg) skewX(-5deg)";
+    }
+
+    // Reset image transformation after a delay
+    setTimeout(() => {
+        image.style.transform = "translate(0px, 0px)";
+    }, 100);
+
+    // Save updated data to Telegram Cloud Storage
+    sendDataToTelegramCloudStorage({ coins: coins }); // Example: Save updated coins count
 });
 
-// Function to update values in storage
-function updateValues() {
-    // Update coins in storage
-    storage.setItem("coins", coins.toString(), (err, success) => {
-        if (err) {
-            console.error("Error setting coins:", err);
-        }
-    });
-
-    // Update power in storage
-    storage.setItem("power", power.toString(), (err, success) => {
-        if (err) {
-            console.error("Error setting power:", err);
-        }
-    });
-
-    // Update DOM
-    document.getElementById("coins").textContent = coins.toLocaleString();
-    document.getElementById("power").textContent = power;
-}
-
-// Function to apply visual transformations based on click position
-function applyTransformations(x, y) {
-    // Implement your visual transformations here
-}
-
-// Power recovery interval
+// Function to update power and progress bar
 setInterval(() => {
-    // Increment power every 2 seconds, up to a maximum of 'total'
+    // Update power if it's less than total
     if (power < total) {
-        power += 2;
-        updateValues();
+        let newPower = Math.min(power + 2, 500);
+        power = newPower;
+        body.querySelector("#power").textContent = newPower;
+        body.querySelector(".progress").style.width = (100 * newPower / total) + "%";
+
+        // Save updated power to Telegram Cloud Storage
+        sendDataToTelegramCloudStorage({ power: newPower }); // Example: Save updated power
     }
 }, 2000);
-
-// Initialize values when the document is ready
-document.addEventListener("DOMContentLoaded", () => {
-    initializeValues();
-    updateValues(); // Update DOM with initial values
-});

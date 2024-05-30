@@ -1,3 +1,4 @@
+const botToken = "6912236548:AAGu_sMweTb24usr4jChJ08_jD7O59dK33I";
 const body = document.body;
 const image = body.querySelector("#coin");
 const h1 = body.querySelector("h1");
@@ -19,6 +20,24 @@ function retrieveDataFromTelegramCloudStorage(userId) {
     // Make a request to your bot to retrieve data associated with the user ID
     // Use Telegram Bot API methods to handle the request and retrieve data securely
     // Return the retrieved data to the web app
+}
+
+// Function to validate data received via the Mini App
+function validateData(initData) {
+    const fields = Object.keys(initData).sort();
+    let dataCheckString = '';
+    for (const field of fields) {
+        dataCheckString += `${field}=${initData[field]}\n`;
+    }
+    const secretKey = HMAC_SHA256(botToken, "WebAppData");
+    const hash = hex(HMAC_SHA256(dataCheckString, secretKey));
+    if (hash === initData.hash) {
+        // Data is from Telegram, perform further validation if necessary
+        const authDate = parseInt(initData.auth_date, 10);
+        // Perform additional checks if needed, e.g., check for expiration
+        return true;
+    }
+    return false;
 }
 
 // Retrieve data from Telegram Cloud Storage on page load

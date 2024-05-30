@@ -1,4 +1,3 @@
-const botToken = "6912236548:AAGu_sMweTb24usr4jChJ08_jD7O59dK33I";
 const body = document.body;
 const image = body.querySelector("#coin");
 const h1 = body.querySelector("h1");
@@ -7,41 +6,13 @@ let total;
 let power;
 let count;
 
-// Function to send data to Telegram Cloud Storage
-function sendDataToTelegramCloudStorage(data) {
-    telegram.answerWebAppQuery({
-        query_id: "unique_id",
-        data: data
-    });
-}
-
-// Function to retrieve data from Telegram Cloud Storage
-function retrieveDataFromTelegramCloudStorage(userId) {
-    // Make a request to your bot to retrieve data associated with the user ID
-    // Use Telegram Bot API methods to handle the request and retrieve data securely
-    // Return the retrieved data to the web app
-}
-
-// Function to validate data received via the Mini App
-function validateData(initData) {
-    const fields = Object.keys(initData).sort();
-    let dataCheckString = '';
-    for (const field of fields) {
-        dataCheckString += `${field}=${initData[field]}\n`;
-    }
-    const secretKey = HMAC_SHA256(botToken, "WebAppData");
-    const hash = hex(HMAC_SHA256(dataCheckString, secretKey));
-    if (hash === initData.hash) {
-        // Data is from Telegram, perform further validation if necessary
-        const authDate = parseInt(initData.auth_date, 10);
-        // Perform additional checks if needed, e.g., check for expiration
-        return true;
-    }
-    return false;
-}
-
 // Retrieve data from Telegram Cloud Storage on page load
-telegram.getStorageData({}, (data) => {
+telegram.getItems(["coins", "total", "power", "count"], (error, data) => {
+    if (error) {
+        console.error("Error retrieving data from Telegram Cloud Storage:", error);
+        return;
+    }
+
     coins = data.coins || 0;
     total = data.total || 500;
     power = data.power || 500;
@@ -62,13 +33,11 @@ image.addEventListener("click", (e) => {
     // Vibrate the device (optional)
     navigator.vibrate(5);
 
-    // Retrieve data from Telegram Cloud Storage
-    let coins = retrieveDataFromTelegramCloudStorage(userId); // Example: Retrieve user's coins
-    
-    // Update UI based on retrieved data
-    if (coins !== null) {
-        h1.textContent = Number(coins).toLocaleString();
-    }
+    // Update coins count
+    coins++;
+
+    // Update UI with updated coins count
+    h1.textContent = coins.toLocaleString();
 
     // Perform image transformations based on click position
     if (x < 150 && y < 150) {
@@ -87,19 +56,26 @@ image.addEventListener("click", (e) => {
     }, 100);
 
     // Save updated data to Telegram Cloud Storage
-    sendDataToTelegramCloudStorage({ coins: coins }); // Example: Save updated coins count
+    telegram.setItem("coins", coins, (error, success) => {
+        if (error) {
+            console.error("Error saving coins count to Telegram Cloud Storage:", error);
+        }
+    });
 });
 
 // Function to update power and progress bar
 setInterval(() => {
     // Update power if it's less than total
     if (power < total) {
-        let newPower = Math.min(power + 2, 500);
-        power = newPower;
-        body.querySelector("#power").textContent = newPower;
-        body.querySelector(".progress").style.width = (100 * newPower / total) + "%";
+        power = Math.min(power + 2, 500);
+        body.querySelector("#power").textContent = power;
+        body.querySelector(".progress").style.width = (100 * power / total) + "%";
 
         // Save updated power to Telegram Cloud Storage
-        sendDataToTelegramCloudStorage({ power: newPower }); // Example: Save updated power
+        telegram.setItem("power", power, (error, success) => {
+            if (error) {
+                console.error("Error saving power to Telegram Cloud Storage:", error);
+            }
+        });
     }
 }, 2000);

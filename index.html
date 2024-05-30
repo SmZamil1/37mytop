@@ -149,4 +149,17 @@
 
 
     <script src="js/main.js"></script>
+    <script lang="ts" setup>
+import { useWebAppClosingConfirmation } from 'vue-tg'
+
+const { enableClosingConfirmation, disableClosingConfirmation } = useWebAppClosingConfirmation()
+
+enableClosingConfirmation()
+
+// or
+
+const { isClosingConfirmationEnabled } = useWebAppClosingConfirmation()
+
+isClosingConfirmationEnabled.value = true
+    </script>
 </body></html>

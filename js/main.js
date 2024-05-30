@@ -87,5 +87,4 @@ function getNameFromData() {
 }
 
 // Call the function to extract the user's name
-getNa
-  meFromData();
+getNameFromData();

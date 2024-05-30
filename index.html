@@ -149,17 +149,15 @@
 
 
     <script src="js/main.js"></script>
-    <script lang="ts" setup>
-import { useWebAppClosingConfirmation } from 'vue-tg'
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        Telegram.WebApp.ready();
 
-const { enableClosingConfirmation, disableClosingConfirmation } = useWebAppClosingConfirmation()
+        // Always hide the back button
+        const backButton = Telegram.WebApp.BackButton;
+        backButton.hide();
 
-enableClosingConfirmation()
-
-// or
-
-const { isClosingConfirmationEnabled } = useWebAppClosingConfirmation()
-
-isClosingConfirmationEnabled.value = true
+        // Enable closing confirmation
+        Telegram.WebApp.enableClosingConfirmation();
     </script>
 </body></html>

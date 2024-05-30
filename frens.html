@@ -37,20 +37,21 @@
         }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        Telegram.WebApp.ready(() => {
+            const backButton = Telegram.WebApp.BackButton;
+
+            backButton.show();
+            backButton.onClick(() => {
+                backButton.hide();
+                Telegram.WebApp.close();
+            });
+        });
+    </script>
 </head>
 <body>
     <div class="container">
         <div class="coming-soon">Coming Soon</div>
     </div>
-
-    <script>
-        Telegram.WebApp.ready(function() {
-            const backButton = Telegram.WebApp.BackButton;
-            backButton.show();
-            backButton.onClick(function() {
-                backButton.hide();
-            });
-        });
-    </script>
 </body>
 </html>

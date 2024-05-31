@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Helper function to initialize values from CloudStorage
         function initializeValues() {
-            CloudStorage.getItems(['coins', 'total', 'power', 'count'], function(err, res) {
+            cloudStorage.getItems(['coins', 'total', 'power', 'count'], function(err, res) {
                 if (err) {
                     console.error('Error loading values from CloudStorage', err);
                     return;
@@ -61,10 +61,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 body.querySelector("#total").textContent = `/${total}`;
                 body.querySelector("#power").textContent = power;
 
-                if (res.coins === undefined) CloudStorage.setItem("coins", "0");
-                if (res.total === undefined) CloudStorage.setItem("total", "500");
-                if (res.power === undefined) CloudStorage.setItem("power", "500");
-                if (res.count === undefined) CloudStorage.setItem("count", "1");
+                if (res.coins === undefined) cloudStorage.setItem("coins", "0");
+                if (res.total === undefined) cloudStorage.setItem("total", "500");
+                if (res.power === undefined) cloudStorage.setItem("power", "500");
+                if (res.count === undefined) cloudStorage.setItem("count", "1");
 
                 updateProgress();
             });
@@ -86,11 +86,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 coins = Number(coins) + 1;
                 power = Number(power) - 1;
 
-                CloudStorage.setItem("coins", `${coins}`, function() {
+                cloudStorage.setItem("coins", `${coins}`, function() {
                     h1.textContent = coins.toLocaleString();
                 });
 
-                CloudStorage.setItem("power", `${power}`, function() {
+                cloudStorage.setItem("power", `${power}`, function() {
                     body.querySelector("#power").textContent = power;
                     updateProgress();
                 });
@@ -113,7 +113,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
 
         setInterval(() => {
-            CloudStorage.getItems(['count', 'power', 'total'], function(err, res) {
+            cloudStorage.getItems(['count', 'power', 'total'], function(err, res) {
                 if (err) {
                     console.error('Error loading values from CloudStorage', err);
                     return;
@@ -125,7 +125,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 if (Number(total) > Number(power)) {
                     let newPower = Math.min(Number(power) + 2, 500);
-                    CloudStorage.setItem("power", `${newPower}`, function() {
+                    cloudStorage.setItem("power", `${newPower}`, function() {
                         body.querySelector("#power").textContent = newPower;
                         updateProgress();
                     });

@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", function() {
+    // Ensure the Telegram Web App script is loaded
     if (window.Telegram && window.Telegram.WebApp) {
         const body = document.body,
             image = body.querySelector("#coin"),
@@ -9,7 +10,6 @@ document.addEventListener("DOMContentLoaded", function() {
             var cloudStorage = {};
 
             function invokeStorageMethod(method, params, callback) {
-                // Assuming `versionAtLeast` and `invokeCustomMethod` are defined elsewhere
                 if (!versionAtLeast('6.9')) {
                     console.error('[Telegram.WebApp] CloudStorage is not supported in version ' + webAppVersion);
                     throw Error('WebAppMethodUnsupported');
@@ -42,16 +42,11 @@ document.addEventListener("DOMContentLoaded", function() {
             return cloudStorage;
         })();
 
-        Object.defineProperty(WebApp, 'CloudStorage', {
-            value: CloudStorage,
-            enumerable: true
-        });
-
         let coins, total, power, count;
 
         // Helper function to initialize values from CloudStorage
         function initializeValues() {
-            WebApp.CloudStorage.getItems(['coins', 'total', 'power', 'count'], function(err, res) {
+            CloudStorage.getItems(['coins', 'total', 'power', 'count'], function(err, res) {
                 if (err) {
                     console.error('Error loading values from CloudStorage', err);
                     return;
@@ -66,10 +61,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 body.querySelector("#total").textContent = `/${total}`;
                 body.querySelector("#power").textContent = power;
 
-                if (res.coins === undefined) WebApp.CloudStorage.setItem("coins", "0");
-                if (res.total === undefined) WebApp.CloudStorage.setItem("total", "500");
-                if (res.power === undefined) WebApp.CloudStorage.setItem("power", "500");
-                if (res.count === undefined) WebApp.CloudStorage.setItem("count", "1");
+                if (res.coins === undefined) CloudStorage.setItem("coins", "0");
+                if (res.total === undefined) CloudStorage.setItem("total", "500");
+                if (res.power === undefined) CloudStorage.setItem("power", "500");
+                if (res.count === undefined) CloudStorage.setItem("count", "1");
 
                 updateProgress();
             });
@@ -91,11 +86,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 coins = Number(coins) + 1;
                 power = Number(power) - 1;
 
-                WebApp.CloudStorage.setItem("coins", `${coins}`, function() {
+                CloudStorage.setItem("coins", `${coins}`, function() {
                     h1.textContent = coins.toLocaleString();
                 });
 
-                WebApp.CloudStorage.setItem("power", `${power}`, function() {
+                CloudStorage.setItem("power", `${power}`, function() {
                     body.querySelector("#power").textContent = power;
                     updateProgress();
                 });
@@ -118,7 +113,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
 
         setInterval(() => {
-            WebApp.CloudStorage.getItems(['count', 'power', 'total'], function(err, res) {
+            CloudStorage.getItems(['count', 'power', 'total'], function(err, res) {
                 if (err) {
                     console.error('Error loading values from CloudStorage', err);
                     return;
@@ -130,7 +125,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 if (Number(total) > Number(power)) {
                     let newPower = Math.min(Number(power) + 2, 500);
-                    WebApp.CloudStorage.setItem("power", `${newPower}`, function() {
+                    CloudStorage.setItem("power", `${newPower}`, function() {
                         body.querySelector("#power").textContent = newPower;
                         updateProgress();
                     });
@@ -153,4 +148,3 @@ document.addEventListener("DOMContentLoaded", function() {
         console.error("Telegram Web App script not loaded");
     }
 });
-

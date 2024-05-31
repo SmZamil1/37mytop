@@ -1,7 +1,5 @@
 document.addEventListener("DOMContentLoaded", function() {
-    // Check if the Telegram Web App script is loaded
     if (window.Telegram && window.Telegram.WebApp) {
-        // Proceed with the rest of the script
         const body = document.body,
             image = body.querySelector("#coin"),
             h1 = body.querySelector("h1");
@@ -11,6 +9,7 @@ document.addEventListener("DOMContentLoaded", function() {
             var cloudStorage = {};
 
             function invokeStorageMethod(method, params, callback) {
+                // Assuming `versionAtLeast` and `invokeCustomMethod` are defined elsewhere
                 if (!versionAtLeast('6.9')) {
                     console.error('[Telegram.WebApp] CloudStorage is not supported in version ' + webAppVersion);
                     throw Error('WebAppMethodUnsupported');
@@ -20,7 +19,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             cloudStorage.setItem = function(key, value, callback) {
-                return invokeStorageMethod('saveStorageValue', {key: key, value: value}, callback);
+                return invokeStorageMethod('saveStorageValue', { key: key, value: value }, callback);
             };
             cloudStorage.getItem = function(key, callback) {
                 return cloudStorage.getItems([key], callback ? function(err, res) {
@@ -29,13 +28,13 @@ document.addEventListener("DOMContentLoaded", function() {
                 } : null);
             };
             cloudStorage.getItems = function(keys, callback) {
-                return invokeStorageMethod('getStorageValues', {keys: keys}, callback);
+                return invokeStorageMethod('getStorageValues', { keys: keys }, callback);
             };
             cloudStorage.removeItem = function(key, callback) {
                 return cloudStorage.removeItems([key], callback);
             };
             cloudStorage.removeItems = function(keys, callback) {
-                return invokeStorageMethod('deleteStorageValues', {keys: keys}, callback);
+                return invokeStorageMethod('deleteStorageValues', { keys: keys }, callback);
             };
             cloudStorage.getKeys = function(callback) {
                 return invokeStorageMethod('getStorageKeys', {}, callback);
@@ -48,7 +47,6 @@ document.addEventListener("DOMContentLoaded", function() {
             enumerable: true
         });
 
-        // Initialize variables
         let coins, total, power, count;
 
         // Helper function to initialize values from CloudStorage
@@ -79,7 +77,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Update progress bar width
         function updateProgress() {
-            body.querySelector(".progress").style.width = 100 * power / total + "%";
+            body.querySelector(".progress").style.width = (100 * Number(power) / Number(total)) + "%";
         }
 
         // Initialize values on page load
@@ -93,13 +91,14 @@ document.addEventListener("DOMContentLoaded", function() {
                 coins = Number(coins) + 1;
                 power = Number(power) - 1;
 
-                WebApp.CloudStorage.setItem("coins", `${coins}`);
-                WebApp.CloudStorage.setItem("power", `${power}`);
+                WebApp.CloudStorage.setItem("coins", `${coins}`, function() {
+                    h1.textContent = coins.toLocaleString();
+                });
 
-                h1.textContent = coins.toLocaleString();
-                body.querySelector("#power").textContent = power;
-
-                updateProgress();
+                WebApp.CloudStorage.setItem("power", `${power}`, function() {
+                    body.querySelector("#power").textContent = power;
+                    updateProgress();
+                });
 
                 // Apply animation based on click position
                 if (x < 150 && y < 150) {
@@ -129,11 +128,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 power = res.power;
                 total = res.total;
 
-                if (Number(total) > power) {
+                if (Number(total) > Number(power)) {
                     let newPower = Math.min(Number(power) + 2, 500);
-                    WebApp.CloudStorage.setItem("power", `${newPower}`);
-                    body.querySelector("#power").textContent = `${newPower}`;
-                    updateProgress();
+                    WebApp.CloudStorage.setItem("power", `${newPower}`, function() {
+                        body.querySelector("#power").textContent = newPower;
+                        updateProgress();
+                    });
                 }
             });
         }, 2000);
@@ -153,3 +153,4 @@ document.addEventListener("DOMContentLoaded", function() {
         console.error("Telegram Web App script not loaded");
     }
 });
+

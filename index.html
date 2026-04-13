@@ -1,168 +1,726 @@
-<!DOCTYPE html><html lang="en"><head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LXM coin</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/responsive.css">
-    <meta name="theme-color" content="#f19e36">
-
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-<script src="https://telegram.org/js/telegram-web-app.js?1"></script>
-    <script>
-        Telegram.WebApp.expand(); // Expands the webview immediately when the page loads
-
-        function getNameFromData() {
-            const data = Telegram.WebApp.initDataUnsafe;
-            if (data && data.user) {
-                const firstName = data.user.first_name || '';
-                const lastName = data.user.last_name || '';
-                if (firstName || lastName) {
-                    return `Hey ${firstName} ${lastName}`.trim();
-                }
-            }
-            return 'Set tg username to view rank';
-        }
-
-        document.addEventListener("DOMContentLoaded", function() {
-            const name = getNameFromData();
-            const nameElement = document.createElement('div');
-            nameElement.textContent = name;
-            nameElement.classList.add('username');
-            document.body.prepend(nameElement);
-
-            // Adjust leaderboard margin-top based on username element height
-            const usernameHeight = nameElement.offsetHeight;
-            const leaderboardContainer = document.querySelector('.leaderboard-container');
-            leaderboardContainer.style.marginTop = `${usernameHeight + 20}px`; // 20px for additional spacing
-        });
-    </script>
- <style>
+    <title>⛏️ Coin Miner - Free Telegram App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            margin: 0;
-            padding: 0;
-            background-image: url('https://iili.io/JZFXvK7.gif');
-            background-size: cover;
-            background-position: center;
-            font-family: Arial, sans-serif;
-            color: #ffffff; /* Text color, adjust as needed */
+            font-family: 'Segoe UI', Tahoma, Geneva, sans-serif;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a3f 100%);
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
         }
+
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.4);
+            border-bottom: 3px solid #ffd700;
+            box-shadow: 0 4px 12px rgba(255,215,0,0.2);
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
         .username {
-    color: gold;
-    text-align: center;
-    font-family: 'Nunito';
-    font-weight: bold;
-    font-size: 20px;
-    position: fixed;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    padding: 10px 0;
-    background-color: #141523;
-    z-index: 1000;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
         }
+
+        .level-badge {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            width: fit-content;
+        }
+
+        .coin-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, rgba(255,215,0,0.3) 0%, rgba(255,165,0,0.2) 100%);
+            padding: 8px 14px;
+            border-radius: 12px;
+            border: 1px solid #ffd700;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
         .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            scroll-behavior: smooth;
+        }
+
+        .tab-content {
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .mining-card {
+            text-align: center;
             padding: 20px;
+        }
+
+        .coin-image {
+            width: 220px;
+            height: 220px;
+            cursor: pointer;
+            margin: 20px auto;
+            filter: drop-shadow(0 0 20px rgba(255,215,0,0.6));
+            transition: transform 0.1s, filter 0.2s;
+            animation: floatCoin 3s ease-in-out infinite;
+        }
+
+        .coin-image:hover {
+            filter: drop-shadow(0 0 30px rgba(255,215,0,0.8));
+        }
+
+        .coin-image:active {
+            transform: scale(0.9);
+        }
+
+        @keyframes floatCoin {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .mining-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .stat-box {
+            background: rgba(0,150,255,0.15);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(0,150,255,0.3);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .nav {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            padding: 10px;
+            background: rgba(0,0,0,0.4);
+            border-top: 3px solid #ffd700;
+        }
+
+        .nav-btn {
+            padding: 10px;
+            background: transparent;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 12px;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .nav-btn.active {
+            background: rgba(255,215,0,0.2);
+            color: #ffd700;
+            border: 1px solid #ffd700;
+        }
+
+        .card {
+            background: rgba(0,150,255,0.1);
+            padding: 16px;
+            border-radius: 12px;
+            margin: 12px 0;
+            border: 1px solid rgba(0,150,255,0.3);
+            border-left: 3px solid #00d4ff;
+        }
+
+        .card h3 {
+            margin-bottom: 12px;
+            color: #00d4ff;
+        }
+
+        .card input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s;
+        }
+
+        .card input:focus {
+            outline: none;
+            background: rgba(255,255,255,0.15);
+            border-color: #00d4ff;
+        }
+
+        .card input::placeholder {
+            color: #666;
+        }
+
+        .card button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #000;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .card button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,215,0,0.4);
+        }
+
+        .card button:active {
+            transform: translateY(0);
+        }
+
+        .info-text {
+            font-size: 14px;
+            color: #aaa;
+            margin: 8px 0;
+        }
+
+        .upgrade-item {
+            background: rgba(100,200,255,0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid rgba(100,200,255,0.3);
+        }
+
+        .upgrade-item p {
+            font-size: 12px;
+            color: #aaa;
+            margin: 4px 0;
+        }
+
+        .leaderboard-entry {
+            display: grid;
+            grid-template-columns: 40px 1fr auto;
+            gap: 12px;
+            align-items: center;
+            padding: 12px;
+            background: rgba(0,150,255,0.1);
+            border-radius: 8px;
+            margin: 8px 0;
+            border: 1px solid rgba(0,150,255,0.2);
+            animation: slideIn 0.3s ease;
+        }
+
+        .rank {
+            font-weight: bold;
+            color: #ffd700;
+            font-size: 18px;
             text-align: center;
         }
-        pre {
-    display: none; /* Hide the pre element */
- 
+
+        .entry-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .entry-name {
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .entry-stats {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .entry-coins {
+            font-weight: bold;
+            color: #00d4ff;
+            text-align: right;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2c3e50;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 1000;
+            transition: bottom 0.3s;
+            border: 1px solid #00d4ff;
+            box-shadow: 0 4px 12px rgba(0,212,255,0.3);
+        }
+
+        #toast.show {
+            bottom: 20px;
+        }
+
+        .reward-badge {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .scrollable::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollable::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .scrollable::-webkit-scrollbar-thumb {
+            background: rgba(255,215,0,0.3);
+            border-radius: 3px;
         }
     </style>
 </head>
 <body>
-
-    
-    <div class="squad-container" style="display: none;">
-    <div class="login" style="display: none;">
-        <div class="login-detail" style="display: none;">
-            <div class="profile" style="display: none;">
-                <!-- Empty div -->
+    <div class="app">
+        <!-- Header -->
+        <div class="header">
+            <div class="user-info">
+                <span class="username" id="username">Loading...</span>
+                <span class="level-badge" id="levelBadge">Lv. 1</span>
             </div>
-        </div>
-    </div>
-</div>
-
-
-                <div class="user-data" style="display: none;">
-    <span class="name">&nbsp;</span>
-    <span class="&nbsp;"></span>
-</div>
-        
-    
-<div>&nbsp;&nbsp;&nbsp;&nbsp;</div>
-<div>&nbsp;&nbsp;&nbsp;&nbsp;</div>
-<div>&nbsp;&nbsp;&nbsp;&nbsp;</div>
-<div>&nbsp;&nbsp;&nbsp;&nbsp;</div><div>&nbsp;&nbsp;&nbsp;&nbsp;</div>
-
-    <div class="coin-count-container">
-        <img src="images/coin.png" width="45px">
-        <h1 class="select-none"></h1>
-    </div>
-
-    <div class="rank-container">
-        <div class="rank-items">
-            <h3 class="select-none">No rank</h3>
-            <span>•</span>
-            <img src="images/bronze-medal.png" class="select-none" width="30px">
-            <span id="rank" class="select-none">bronze</span>
-        </div>
-    </div>
-    
-    <div class="coin-container">
-        <!-- <span>+1</span> -->
-        <img src="images/golden.png" id="coin" class="select-none" width="300px">
-    </div>
-
-    <div class="menu-container">
-        <div class="power">
-            <img src="images/thunder.png" width="40px">
-            <div class="power-count">
-                <span id="power" class="select-none">0</span>
-                <span class="gray select-none" id="total">/0</span>
+            <div class="coin-display">
+                <span>🪙</span> <span id="coins">0</span>
             </div>
         </div>
 
-        <div class="menu-bottuns">
-    <a href="https://smzamil1.github.io/37mytop/frens.html" class="button b-r">
-        <img src="images/teddy-bear.png" alt="" width="28px">
-        <span class="select-none">Frens</span>
-    </a>
-    <a href="https://smzamil1.github.io/37mytop/frens.html" class="button b-r">
-        <img src="images/coin.png" alt="" width="28px">
-        <span class="select-none">Earn</span>
-    </a>
-    <a href="https://smzamil1.github.io/37mytop/frens.html" class="button">
-        <img src="images/rocket.png" alt="" width="28px">
-        <span class="select-none">Boost</span>
-    </a>
-</div>
+        <!-- Main Content -->
+        <div class="content scrollable">
+            <!-- TAB: Mine -->
+            <div class="tab-content active" id="tab-mine">
+                <div class="mining-card">
+                    <h2>⛏️ Start Mining</h2>
+                    <img id="tapCoin" src="images/golden.png" alt="Tap Coin" class="coin-image">
+                    <div class="mining-stats">
+                        <div class="stat-box">
+                            <div class="stat-label">⚡ Power</div>
+                            <div class="stat-value"><span id="power">1</span></div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">🔨 Taps</div>
+                            <div class="stat-value"><span id="taps">0</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-            
+            <!-- TAB: Referrals -->
+            <div class="tab-content" id="tab-referrals">
+                <div class="card">
+                    <h3>👥 Invite Friends</h3>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px;">
+                        <input type="text" id="refCode" readonly>
+                        <button onclick="copyRef()" style="width: auto; margin-top: 0; padding: 10px 16px;">📋</button>
+                    </div>
+                    <p class="info-text">Share this code with friends to earn bonuses!</p>
+                    <div class="stat-box" style="margin-top: 12px;">
+                        <div class="stat-label">Referrals</div>
+                        <div class="stat-value"><span id="refCount">0</span></div>
+                    </div>
+                    <div class="stat-box" style="margin-top: 8px;">
+                        <div class="stat-label">Referral Earnings</div>
+                        <div class="stat-value"><span id="refEarn">0</span> 🪙</div>
+                    </div>
+
+                    <h3 style="margin-top: 20px;">Claim Referral Code</h3>
+                    <input type="text" id="claimCode" placeholder="Enter friend's referral code">
+                    <button onclick="claimRef()">✅ Claim Bonus (500 🪙)</button>
+                </div>
+            </div>
+
+            <!-- TAB: Earn -->
+            <div class="tab-content" id="tab-earn">
+                <div class="card">
+                    <h3>⚡ Mining Power</h3>
+                    <p class="info-text">+1 coin per tap</p>
+                    <p class="info-text" id="powerCost">Cost: 500 🪙</p>
+                    <button onclick="upgradePower()">🔋 Upgrade Power</button>
+                </div>
+
+                <div class="card">
+                    <h3>🤖 Auto Mining</h3>
+                    <p class="info-text">Earn coins automatically every 5 seconds</p>
+                    <p class="info-text">Level: <strong id="autoLevel">0</strong></p>
+                    <p class="info-text" id="autoCost">Cost: 2000 🪙</p>
+                    <button onclick="upgradeAuto()">🚀 Buy Auto Mining</button>
+                </div>
+            </div>
+
+            <!-- TAB: Leaderboard -->
+            <div class="tab-content" id="tab-leaderboard">
+                <h2 style="margin-bottom: 16px;">🏆 Top Miners</h2>
+                <div id="leaderboard"></div>
+            </div>
         </div>
-    
 
-    <div class="progress-bar">
-        <div class="progress"></div>
+        <!-- Navigation -->
+        <div class="nav">
+            <button class="nav-btn active" onclick="switchTab('mine')">
+                <span>⛏️</span>
+                <span>Mine</span>
+            </button>
+            <button class="nav-btn" onclick="switchTab('referrals')">
+                <span>👥</span>
+                <span>Refer</span>
+            </button>
+            <button class="nav-btn" onclick="switchTab('earn')">
+                <span>🚀</span>
+                <span>Earn</span>
+            </button>
+            <button class="nav-btn" onclick="switchTab('leaderboard')">
+                <span>🏆</span>
+                <span>Ranks</span>
+            </button>
+        </div>
     </div>
 
+    <!-- Toast Notification -->
+    <div id="toast"></div>
 
-    <script src="js/main.js"></script>
-        <!-- Firebase scripts -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
-
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
-        Telegram.WebApp.ready();
+        // ============ STORAGE MANAGEMENT ============
+        const DB_KEY = 'coinMinerDB';
+        const LEADERBOARD_KEY = 'leaderboardDB';
 
-        // Always hide the back button
-        const backButton = Telegram.WebApp.BackButton;
-        backButton.hide();
+        // Get or create user
+        function getUserData() {
+            let data = localStorage.getItem(DB_KEY);
+            if (!data) {
+                const newUser = {
+                    telegramId: getTelegramId(),
+                    username: getTelegramUsername(),
+                    coins: 0,
+                    level: 1,
+                    taps: 0,
+                    referralCode: generateRefCode(),
+                    referredBy: null,
+                    referralCount: 0,
+                    referralEarnings: 0,
+                    miningPower: 1,
+                    autoMiningLevel: 0,
+                    createdAt: Date.now()
+                };
+                localStorage.setItem(DB_KEY, JSON.stringify(newUser));
+                return newUser;
+            }
+            return JSON.parse(data);
+        }
 
-        // Enable closing confirmation
-        Telegram.WebApp.enableClosingConfirmation();
+        function saveUserData(user) {
+            localStorage.setItem(DB_KEY, JSON.stringify(user));
+        }
+
+        // ============ TELEGRAM INTEGRATION ============
+        function getTelegramId() {
+            try {
+                const data = Telegram.WebApp.initDataUnsafe;
+                return data?.user?.id?.toString() || `user_${Date.now()}`;
+            } catch {
+                return `user_${Date.now()}`;
+            }
+        }
+
+        function getTelegramUsername() {
+            try {
+                const data = Telegram.WebApp.initDataUnsafe;
+                if (data?.user?.first_name) {
+                    return `${data.user.first_name} ${data.user.last_name || ''}`.trim();
+                }
+                return data?.user?.username || 'Anonymous';
+            } catch {
+                return 'Anonymous';
+            }
+        }
+
+        // ============ UTILITY FUNCTIONS ============
+        function generateRefCode() {
+            return Math.random().toString(36).substring(2, 10).toUpperCase();
+        }
+
+        function calculateLevel(coins) {
+            return Math.floor(coins / 1000) + 1;
+        }
+
+        function calculateReward(rank) {
+            if (rank === 1) return 1000;
+            if (rank === 2) return 700;
+            if (rank === 3) return 500;
+            if (rank <= 10) return 300 - (rank - 4) * 20;
+            return 100;
+        }
+
+        // ============ MAIN LOGIC ============
+        let currentUser = null;
+        let autoMiningInterval = null;
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                Telegram.WebApp.expand();
+                Telegram.WebApp.enableClosingConfirmation();
+                Telegram.WebApp.BackButton.hide();
+            } catch {}
+
+            currentUser = getUserData();
+            updateUI();
+            setupEventListeners();
+            startAutoMining();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('tapCoin').addEventListener('click', tap);
+        }
+
+        // Mining
+        function tap() {
+            if (!currentUser) return;
+            currentUser.coins += currentUser.miningPower;
+            currentUser.taps += 1;
+            currentUser.level = calculateLevel(currentUser.coins);
+            saveUserData(currentUser);
+            updateUI();
+            updateLeaderboard();
+        }
+
+        // Auto Mining
+        function startAutoMining() {
+            if (autoMiningInterval) clearInterval(autoMiningInterval);
+            autoMiningInterval = setInterval(() => {
+                if (currentUser && currentUser.autoMiningLevel > 0) {
+                    currentUser.coins += currentUser.autoMiningLevel;
+                    currentUser.level = calculateLevel(currentUser.coins);
+                    saveUserData(currentUser);
+                    updateUI();
+                    updateLeaderboard();
+                }
+            }, 5000);
+        }
+
+        // Upgrade Power
+        function upgradePower() {
+            if (!currentUser) return;
+            const cost = currentUser.miningPower * 500;
+            if (currentUser.coins < cost) {
+                toast('❌ Not enough coins!');
+                return;
+            }
+            currentUser.coins -= cost;
+            currentUser.miningPower += 1;
+            saveUserData(currentUser);
+            updateUI();
+            updateLeaderboard();
+            toast('⚡ Power upgraded!');
+        }
+
+        // Upgrade Auto Mining
+        function upgradeAuto() {
+            if (!currentUser) return;
+            const cost = (currentUser.autoMiningLevel + 1) * 2000;
+            if (currentUser.coins < cost) {
+                toast('❌ Not enough coins!');
+                return;
+            }
+            currentUser.coins -= cost;
+            currentUser.autoMiningLevel += 1;
+            saveUserData(currentUser);
+            updateUI();
+            updateLeaderboard();
+            startAutoMining();
+            toast('🤖 Auto mining activated!');
+        }
+
+        // Claim Referral
+        function claimRef() {
+            if (!currentUser) return;
+            const code = document.getElementById('claimCode').value.trim();
+            if (!code) {
+                toast('Enter referral code');
+                return;
+            }
+            if (currentUser.referredBy) {
+                toast('Already claimed referral');
+                return;
+            }
+
+            // Get all users
+            const allUsers = getAllUsers();
+            const referrer = allUsers.find(u => u.referralCode === code);
+
+            if (!referrer) {
+                toast('❌ Invalid code!');
+                return;
+            }
+
+            // Award coins
+            currentUser.coins += 500;
+            currentUser.referredBy = referrer.telegramId;
+            referrer.coins += 500;
+            referrer.referralCount += 1;
+            referrer.referralEarnings += 500;
+
+            currentUser.level = calculateLevel(currentUser.coins);
+            referrer.level = calculateLevel(referrer.coins);
+
+            saveUserData(currentUser);
+            saveUserToLeaderboard(referrer);
+
+            document.getElementById('claimCode').value = '';
+            updateUI();
+            updateLeaderboard();
+            toast('✅ Bonus claimed!');
+        }
+
+        // Copy Referral Code
+        function copyRef() {
+            navigator.clipboard.writeText(currentUser.referralCode);
+            toast('📋 Code copied!');
+        }
+
+        // UI Update
+        function updateUI() {
+            document.getElementById('username').textContent = currentUser.username;
+            document.getElementById('levelBadge').textContent = `Lv. ${currentUser.level}`;
+            document.getElementById('coins').textContent = currentUser.coins;
+            document.getElementById('power').textContent = currentUser.miningPower;
+            document.getElementById('taps').textContent = currentUser.taps;
+            document.getElementById('refCode').value = currentUser.referralCode;
+            document.getElementById('refCount').textContent = currentUser.referralCount;
+            document.getElementById('refEarn').textContent = currentUser.referralEarnings;
+            document.getElementById('autoLevel').textContent = currentUser.autoMiningLevel;
+            document.getElementById('powerCost').textContent = `Cost: ${currentUser.miningPower * 500} 🪙`;
+            document.getElementById('autoCost').textContent = `Cost: ${(currentUser.autoMiningLevel + 1) * 2000} 🪙`;
+        }
+
+        // Leaderboard
+        function updateLeaderboard() {
+            const allUsers = getAllUsers();
+            const sorted = allUsers.sort((a, b) => b.referralCount - a.referralCount);
+            const top100 = sorted.slice(0, 100);
+
+            const html = top100.map((u, i) => `
+                <div class="leaderboard-entry">
+                    <div class="rank">#${i + 1}</div>
+                    <div class="entry-info">
+                        <div class="entry-name">${u.username}</div>
+                        <div class="entry-stats">${u.referralCount} refs • Lv.${u.level}</div>
+                    </div>
+                    <div class="entry-coins">${u.coins}🪙</div>
+                </div>
+            `).join('');
+
+            document.getElementById('leaderboard').innerHTML = html || '<p style="text-align:center; color:#aaa;">No miners yet</p>';
+        }
+
+        function loadLeaderboard() {
+            updateLeaderboard();
+        }
+
+        // User Management
+        function getAllUsers() {
+            let users = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
+            // Include current user
+            const existingIndex = users.findIndex(u => u.telegramId === currentUser.telegramId);
+            if (existingIndex >= 0) {
+                users[existingIndex] = currentUser;
+            } else {
+                users.push(currentUser);
+            }
+            return users;
+        }
+
+        function saveUserToLeaderboard(user) {
+            let users = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
+            const existingIndex = users.findIndex(u => u.telegramId === user.telegramId);
+            if (existingIndex >= 0) {
+                users[existingIndex] = user;
+            } else {
+                users.push(user);
+            }
+            localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(users));
+        }
+
+        // Tab Switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            event.target.closest('.nav-btn').classList.add('active');
+
+            if (tab === 'leaderboard') {
+                loadLeaderboard();
+            }
+        }
+
+        // Toast Notification
+        function toast(msg) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 3000);
+        }
     </script>
-</body></html>
+</body>
+</html>

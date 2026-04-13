@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⛏️ Coin Miner - Free Telegram App</title>
+    <title>⛏️ Coin Miner Pro - Enhanced Telegram App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -16,6 +16,92 @@
             overflow: hidden;
         }
 
+        /* LOGIN SCREEN FOR BROWSER USERS */
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a3f 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            animation: slideUp 0.5s ease;
+        }
+
+        .login-screen.hidden {
+            display: none;
+        }
+
+        .login-container {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 40px 30px;
+            border-radius: 20px;
+            border: 2px solid #ffd700;
+            box-shadow: 0 8px 32px rgba(255, 215, 0, 0.2);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .login-container h2 {
+            margin-bottom: 30px;
+            color: #ffd700;
+            font-size: 28px;
+        }
+
+        .login-container input {
+            width: 100%;
+            padding: 12px;
+            margin: 12px 0;
+            border: 1px solid #00d4ff;
+            border-radius: 8px;
+            background: rgba(0, 212, 255, 0.1);
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .login-container input:focus {
+            outline: none;
+            background: rgba(0, 212, 255, 0.2);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+        }
+
+        .login-container button {
+            width: 100%;
+            padding: 14px;
+            margin-top: 20px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .login-container button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+        }
+
+        .login-info {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 15px;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* MAIN APP */
         .app {
             display: flex;
             flex-direction: column;
@@ -48,11 +134,24 @@
 
         .level-badge {
             background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-            padding: 2px 8px;
+            padding: 4px 12px;
             border-radius: 12px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
             width: fit-content;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .level-progress {
+            display: flex;
+            gap: 2px;
+            margin-top: 4px;
+        }
+
+        .level-star {
+            font-size: 8px;
         }
 
         .coin-display {
@@ -65,6 +164,12 @@
             border: 1px solid #ffd700;
             font-weight: bold;
             font-size: 18px;
+            animation: coinPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes coinPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
 
         .content {
@@ -101,6 +206,7 @@
             filter: drop-shadow(0 0 20px rgba(255,215,0,0.6));
             transition: transform 0.1s, filter 0.2s;
             animation: floatCoin 3s ease-in-out infinite;
+            position: relative;
         }
 
         .coin-image:hover {
@@ -108,17 +214,38 @@
         }
 
         .coin-image:active {
-            transform: scale(0.9);
+            transform: scale(0.85) rotate(15deg);
+            animation: tapPulse 0.4s ease-out;
         }
 
         @keyframes floatCoin {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+            50% { transform: translateY(-15px); }
+        }
+
+        @keyframes tapPulse {
+            0% { transform: scale(0.85); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* TAP PARTICLES */
+        .tap-particle {
+            position: fixed;
+            pointer-events: none;
+            font-size: 20px;
+            font-weight: bold;
+            animation: particleFloat 1s ease-out forwards;
+        }
+
+        @keyframes particleFloat {
+            0% { opacity: 1; transform: translate(0, 0) scale(1); }
+            100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.5); }
         }
 
         .mining-stats {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 12px;
             margin-top: 20px;
         }
@@ -128,23 +255,30 @@
             padding: 12px;
             border-radius: 10px;
             border: 1px solid rgba(0,150,255,0.3);
+            transition: all 0.3s;
+        }
+
+        .stat-box:hover {
+            background: rgba(0,150,255,0.25);
+            transform: translateY(-3px);
         }
 
         .stat-label {
-            font-size: 12px;
+            font-size: 11px;
             color: #aaa;
             text-transform: uppercase;
         }
 
         .stat-value {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
             color: #00d4ff;
+            margin-top: 4px;
         }
 
         .nav {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             gap: 6px;
             padding: 10px;
             background: rgba(0,0,0,0.4);
@@ -152,18 +286,18 @@
         }
 
         .nav-btn {
-            padding: 10px;
+            padding: 8px;
             background: transparent;
             border: none;
             color: #999;
             cursor: pointer;
             border-radius: 8px;
-            font-size: 12px;
+            font-size: 11px;
             transition: all 0.3s;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: 3px;
         }
 
         .nav-btn.active {
@@ -195,17 +329,6 @@
             background: rgba(255,255,255,0.1);
             color: #fff;
             border: 1px solid rgba(255,255,255,0.2);
-            transition: all 0.3s;
-        }
-
-        .card input:focus {
-            outline: none;
-            background: rgba(255,255,255,0.15);
-            border-color: #00d4ff;
-        }
-
-        .card input::placeholder {
-            color: #666;
         }
 
         .card button {
@@ -225,30 +348,6 @@
         .card button:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(255,215,0,0.4);
-        }
-
-        .card button:active {
-            transform: translateY(0);
-        }
-
-        .info-text {
-            font-size: 14px;
-            color: #aaa;
-            margin: 8px 0;
-        }
-
-        .upgrade-item {
-            background: rgba(100,200,255,0.1);
-            padding: 12px;
-            border-radius: 8px;
-            margin: 10px 0;
-            border: 1px solid rgba(100,200,255,0.3);
-        }
-
-        .upgrade-item p {
-            font-size: 12px;
-            color: #aaa;
-            margin: 4px 0;
         }
 
         .leaderboard-entry {
@@ -312,14 +411,6 @@
             bottom: 20px;
         }
 
-        .reward-badge {
-            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
         .scrollable::-webkit-scrollbar {
             width: 6px;
         }
@@ -332,15 +423,55 @@
             background: rgba(255,215,0,0.3);
             border-radius: 3px;
         }
+
+        .info-text {
+            font-size: 13px;
+            color: #aaa;
+            margin: 8px 0;
+        }
+
+        .milestone-badge {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 8px 0;
+            animation: bounceIn 0.5s ease;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
     </style>
 </head>
 <body>
-    <div class="app">
+    <!-- LOGIN SCREEN -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-container">
+            <h2>🪙 Coin Miner</h2>
+            <input type="text" id="browserUsername" placeholder="Enter your username">
+            <input type="email" id="browserEmail" placeholder="Enter your email">
+            <button onclick="browserLogin()">Login</button>
+            <p class="login-info">Telegram users will login automatically</p>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div class="app" id="mainApp" style="display:none;">
         <!-- Header -->
         <div class="header">
             <div class="user-info">
                 <span class="username" id="username">Loading...</span>
-                <span class="level-badge" id="levelBadge">Lv. 1</span>
+                <div>
+                    <span class="level-badge" id="levelBadge">
+                        <span>Lv. 1</span>
+                        <span id="levelStars" class="level-progress"></span>
+                    </span>
+                </div>
             </div>
             <div class="coin-display">
                 <span>🪙</span> <span id="coins">0</span>
@@ -353,7 +484,7 @@
             <div class="tab-content active" id="tab-mine">
                 <div class="mining-card">
                     <h2>⛏️ Start Mining</h2>
-                    <img id="tapCoin" src="images/golden.png" alt="Tap Coin" class="coin-image">
+                    <img id="tapCoin" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23FFD700'/%3E%3Ctext x='50' y='60' font-size='50' text-anchor='middle' fill='%23000' font-weight='bold'%3E₿%3C/text%3E%3C/svg%3E" alt="Tap Coin" class="coin-image">
                     <div class="mining-stats">
                         <div class="stat-box">
                             <div class="stat-label">⚡ Power</div>
@@ -362,6 +493,10 @@
                         <div class="stat-box">
                             <div class="stat-label">🔨 Taps</div>
                             <div class="stat-value"><span id="taps">0</span></div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">📊 Rate</div>
+                            <div class="stat-value"><span id="tapRate">0</span>/s</div>
                         </div>
                     </div>
                 </div>
@@ -407,12 +542,30 @@
                     <p class="info-text" id="autoCost">Cost: 2000 🪙</p>
                     <button onclick="upgradeAuto()">🚀 Buy Auto Mining</button>
                 </div>
+
+                <div class="card">
+                    <h3>🎯 Milestone Rewards</h3>
+                    <p class="info-text">Reach level milestones to unlock special rewards!</p>
+                    <div id="milestonesContainer"></div>
+                </div>
             </div>
 
             <!-- TAB: Leaderboard -->
             <div class="tab-content" id="tab-leaderboard">
                 <h2 style="margin-bottom: 16px;">🏆 Top Miners</h2>
                 <div id="leaderboard"></div>
+            </div>
+
+            <!-- TAB: Profile -->
+            <div class="tab-content" id="tab-profile">
+                <div class="card">
+                    <h3>👤 Profile</h3>
+                    <p class="info-text"><strong>Username:</strong> <span id="profileUsername">-</span></p>
+                    <p class="info-text"><strong>Total Coins Earned:</strong> <span id="profileTotalCoins">0</span></p>
+                    <p class="info-text"><strong>Total Taps:</strong> <span id="profileTotalTaps">0</span></p>
+                    <p class="info-text"><strong>Joined:</strong> <span id="profileJoinDate">-</span></p>
+                    <button onclick="logoutUser()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: #fff; margin-top: 20px;">🚪 Logout</button>
+                </div>
             </div>
         </div>
 
@@ -434,6 +587,10 @@
                 <span>🏆</span>
                 <span>Ranks</span>
             </button>
+            <button class="nav-btn" onclick="switchTab('profile')">
+                <span>👤</span>
+                <span>Profile</span>
+            </button>
         </div>
     </div>
 
@@ -445,13 +602,22 @@
         const DB_KEY = 'coinMinerDB';
         const LEADERBOARD_KEY = 'leaderboardDB';
 
-        // Get or create user
+        // Milestones
+        const MILESTONES = [
+            { level: 5, reward: 1000, icon: '⭐' },
+            { level: 10, reward: 5000, icon: '💎' },
+            { level: 15, reward: 10000, icon: '👑' },
+            { level: 20, reward: 25000, icon: '🔱' }
+        ];
+
         function getUserData() {
             let data = localStorage.getItem(DB_KEY);
             if (!data) {
                 const newUser = {
                     telegramId: getTelegramId(),
                     username: getTelegramUsername(),
+                    email: null,
+                    isBrowserUser: isBrowserUser(),
                     coins: 0,
                     level: 1,
                     taps: 0,
@@ -461,7 +627,8 @@
                     referralEarnings: 0,
                     miningPower: 1,
                     autoMiningLevel: 0,
-                    createdAt: Date.now()
+                    createdAt: Date.now(),
+                    milestonesUnlocked: []
                 };
                 localStorage.setItem(DB_KEY, JSON.stringify(newUser));
                 return newUser;
@@ -474,25 +641,64 @@
         }
 
         // ============ TELEGRAM INTEGRATION ============
+        function isBrowserUser() {
+            try {
+                return !Telegram.WebApp || !Telegram.WebApp.initDataUnsafe?.user;
+            } catch {
+                return true;
+            }
+        }
+
         function getTelegramId() {
             try {
-                const data = Telegram.WebApp.initDataUnsafe;
-                return data?.user?.id?.toString() || `user_${Date.now()}`;
+                const data = Telegram.WebApp?.initDataUnsafe;
+                return data?.user?.id?.toString() || `browser_${Date.now()}`;
             } catch {
-                return `user_${Date.now()}`;
+                return `browser_${Date.now()}`;
             }
         }
 
         function getTelegramUsername() {
             try {
-                const data = Telegram.WebApp.initDataUnsafe;
+                const data = Telegram.WebApp?.initDataUnsafe;
                 if (data?.user?.first_name) {
                     return `${data.user.first_name} ${data.user.last_name || ''}`.trim();
                 }
                 return data?.user?.username || 'Anonymous';
             } catch {
-                return 'Anonymous';
+                return localStorage.getItem('browserUsername') || 'Anonymous';
             }
+        }
+
+        // ============ LOGIN MANAGEMENT ============
+        function browserLogin() {
+            const username = document.getElementById('browserUsername').value.trim();
+            const email = document.getElementById('browserEmail').value.trim();
+
+            if (!username || !email) {
+                toast('❌ Please fill all fields');
+                return;
+            }
+
+            localStorage.setItem('browserUsername', username);
+            localStorage.setItem('browserEmail', email);
+
+            let user = getUserData();
+            user.username = username;
+            user.email = email;
+            user.isBrowserUser = true;
+            saveUserData(user);
+
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').style.display = 'flex';
+            initApp();
+        }
+
+        function logoutUser() {
+            localStorage.removeItem(DB_KEY);
+            localStorage.removeItem('browserUsername');
+            localStorage.removeItem('browserEmail');
+            location.reload();
         }
 
         // ============ UTILITY FUNCTIONS ============
@@ -504,54 +710,76 @@
             return Math.floor(coins / 1000) + 1;
         }
 
-        function calculateReward(rank) {
-            if (rank === 1) return 1000;
-            if (rank === 2) return 700;
-            if (rank === 3) return 500;
-            if (rank <= 10) return 300 - (rank - 4) * 20;
-            return 100;
+        function checkMilestones(user) {
+            MILESTONES.forEach(milestone => {
+                if (user.level >= milestone.level && !user.milestonesUnlocked.includes(milestone.level)) {
+                    user.milestonesUnlocked.push(milestone.level);
+                    user.coins += milestone.reward;
+                    toast(`🎉 Milestone ${milestone.level}! +${milestone.reward} 🪙`);
+                    saveUserData(user);
+                }
+            });
         }
 
         // ============ MAIN LOGIC ============
         let currentUser = null;
         let autoMiningInterval = null;
+        let tapCooldown = false;
 
-        // Initialize App
-        document.addEventListener('DOMContentLoaded', () => {
-            try {
-                Telegram.WebApp.expand();
-                Telegram.WebApp.enableClosingConfirmation();
-                Telegram.WebApp.BackButton.hide();
-            } catch {}
-
+        function initApp() {
             currentUser = getUserData();
             updateUI();
             setupEventListeners();
             startAutoMining();
-        });
+            loadMilestones();
+            updateLeaderboard();
+        }
 
         function setupEventListeners() {
             document.getElementById('tapCoin').addEventListener('click', tap);
         }
 
-        // Mining
+        // Mining with particle effects
         function tap() {
-            if (!currentUser) return;
+            if (!currentUser || tapCooldown) return;
+            
+            tapCooldown = true;
+            setTimeout(() => { tapCooldown = false; }, 50);
+
             currentUser.coins += currentUser.miningPower;
             currentUser.taps += 1;
             currentUser.level = calculateLevel(currentUser.coins);
+            
+            checkMilestones(currentUser);
             saveUserData(currentUser);
             updateUI();
             updateLeaderboard();
+
+            // Particle effect
+            createTapParticle(event);
         }
 
-        // Auto Mining
+        function createTapParticle(e) {
+            const particle = document.createElement('div');
+            particle.className = 'tap-particle';
+            particle.textContent = `+${currentUser.miningPower} 🪙`;
+            particle.style.left = e.pageX + 'px';
+            particle.style.top = e.pageY + 'px';
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 80;
+            particle.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+            particle.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+            document.body.appendChild(particle);
+            setTimeout(() => particle.remove(), 1000);
+        }
+
         function startAutoMining() {
             if (autoMiningInterval) clearInterval(autoMiningInterval);
             autoMiningInterval = setInterval(() => {
                 if (currentUser && currentUser.autoMiningLevel > 0) {
                     currentUser.coins += currentUser.autoMiningLevel;
                     currentUser.level = calculateLevel(currentUser.coins);
+                    checkMilestones(currentUser);
                     saveUserData(currentUser);
                     updateUI();
                     updateLeaderboard();
@@ -559,7 +787,6 @@
             }, 5000);
         }
 
-        // Upgrade Power
         function upgradePower() {
             if (!currentUser) return;
             const cost = currentUser.miningPower * 500;
@@ -575,7 +802,6 @@
             toast('⚡ Power upgraded!');
         }
 
-        // Upgrade Auto Mining
         function upgradeAuto() {
             if (!currentUser) return;
             const cost = (currentUser.autoMiningLevel + 1) * 2000;
@@ -592,7 +818,6 @@
             toast('🤖 Auto mining activated!');
         }
 
-        // Claim Referral
         function claimRef() {
             if (!currentUser) return;
             const code = document.getElementById('claimCode').value.trim();
@@ -605,7 +830,6 @@
                 return;
             }
 
-            // Get all users
             const allUsers = getAllUsers();
             const referrer = allUsers.find(u => u.referralCode === code);
 
@@ -614,7 +838,6 @@
                 return;
             }
 
-            // Award coins
             currentUser.coins += 500;
             currentUser.referredBy = referrer.telegramId;
             referrer.coins += 500;
@@ -623,6 +846,9 @@
 
             currentUser.level = calculateLevel(currentUser.coins);
             referrer.level = calculateLevel(referrer.coins);
+
+            checkMilestones(currentUser);
+            checkMilestones(referrer);
 
             saveUserData(currentUser);
             saveUserToLeaderboard(referrer);
@@ -633,55 +859,75 @@
             toast('✅ Bonus claimed!');
         }
 
-        // Copy Referral Code
         function copyRef() {
             navigator.clipboard.writeText(currentUser.referralCode);
             toast('📋 Code copied!');
         }
 
-        // UI Update
+        function loadMilestones() {
+            const container = document.getElementById('milestonesContainer');
+            container.innerHTML = MILESTONES.map(m => `
+                <div class="stat-box" style="margin: 8px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>${m.icon} Level ${m.level}</span>
+                        <span style="color: #ffd700; font-weight: bold;">+${m.reward} 🪙</span>
+                    </div>
+                    <div style="margin-top: 4px; font-size: 11px; color: ${currentUser.milestonesUnlocked.includes(m.level) ? '#2ecc71' : '#aaa'};">
+                        ${currentUser.milestonesUnlocked.includes(m.level) ? '✅ Unlocked' : 'Locked'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
         function updateUI() {
             document.getElementById('username').textContent = currentUser.username;
             document.getElementById('levelBadge').textContent = `Lv. ${currentUser.level}`;
-            document.getElementById('coins').textContent = currentUser.coins;
+            document.getElementById('coins').textContent = currentUser.coins.toLocaleString();
             document.getElementById('power').textContent = currentUser.miningPower;
-            document.getElementById('taps').textContent = currentUser.taps;
+            document.getElementById('taps').textContent = currentUser.taps.toLocaleString();
+            document.getElementById('tapRate').textContent = currentUser.autoMiningLevel;
             document.getElementById('refCode').value = currentUser.referralCode;
             document.getElementById('refCount').textContent = currentUser.referralCount;
-            document.getElementById('refEarn').textContent = currentUser.referralEarnings;
+            document.getElementById('refEarn').textContent = currentUser.referralEarnings.toLocaleString();
             document.getElementById('autoLevel').textContent = currentUser.autoMiningLevel;
-            document.getElementById('powerCost').textContent = `Cost: ${currentUser.miningPower * 500} 🪙`;
-            document.getElementById('autoCost').textContent = `Cost: ${(currentUser.autoMiningLevel + 1) * 2000} 🪙`;
+            document.getElementById('powerCost').textContent = `Cost: ${(currentUser.miningPower * 500).toLocaleString()} 🪙`;
+            document.getElementById('autoCost').textContent = `Cost: ${((currentUser.autoMiningLevel + 1) * 2000).toLocaleString()} 🪙`;
+
+            // Profile
+            document.getElementById('profileUsername').textContent = currentUser.username;
+            document.getElementById('profileTotalCoins').textContent = currentUser.coins.toLocaleString();
+            document.getElementById('profileTotalTaps').textContent = currentUser.taps.toLocaleString();
+            document.getElementById('profileJoinDate').textContent = new Date(currentUser.createdAt).toLocaleDateString();
         }
 
-        // Leaderboard
         function updateLeaderboard() {
             const allUsers = getAllUsers();
-            const sorted = allUsers.sort((a, b) => b.referralCount - a.referralCount);
-            const top100 = sorted.slice(0, 100);
+            const sorted = allUsers.sort((a, b) => b.coins - a.coins);
+            const top50 = sorted.slice(0, 50);
 
-            const html = top100.map((u, i) => `
-                <div class="leaderboard-entry">
-                    <div class="rank">#${i + 1}</div>
-                    <div class="entry-info">
-                        <div class="entry-name">${u.username}</div>
-                        <div class="entry-stats">${u.referralCount} refs • Lv.${u.level}</div>
+            const html = top50.map((u, i) => {
+                let medal = '';
+                if (i === 0) medal = '🥇';
+                else if (i === 1) medal = '🥈';
+                else if (i === 2) medal = '🥉';
+
+                return `
+                    <div class="leaderboard-entry">
+                        <div class="rank">${medal || '#' + (i + 1)}</div>
+                        <div class="entry-info">
+                            <div class="entry-name">${u.username}</div>
+                            <div class="entry-stats">${u.referralCount} refs • Lv.${u.level}</div>
+                        </div>
+                        <div class="entry-coins">${u.coins.toLocaleString()} 🪙</div>
                     </div>
-                    <div class="entry-coins">${u.coins}🪙</div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             document.getElementById('leaderboard').innerHTML = html || '<p style="text-align:center; color:#aaa;">No miners yet</p>';
         }
 
-        function loadLeaderboard() {
-            updateLeaderboard();
-        }
-
-        // User Management
         function getAllUsers() {
             let users = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
-            // Include current user
             const existingIndex = users.findIndex(u => u.telegramId === currentUser.telegramId);
             if (existingIndex >= 0) {
                 users[existingIndex] = currentUser;
@@ -702,7 +948,6 @@
             localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(users));
         }
 
-        // Tab Switching
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -710,17 +955,37 @@
             event.target.closest('.nav-btn').classList.add('active');
 
             if (tab === 'leaderboard') {
-                loadLeaderboard();
+                updateLeaderboard();
+            } else if (tab === 'earn') {
+                loadMilestones();
             }
         }
 
-        // Toast Notification
         function toast(msg) {
             const el = document.getElementById('toast');
             el.textContent = msg;
             el.classList.add('show');
             setTimeout(() => el.classList.remove('show'), 3000);
         }
+
+        // ============ INITIALIZATION ============
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                Telegram.WebApp?.expand?.();
+                Telegram.WebApp?.enableClosingConfirmation?.();
+                Telegram.WebApp?.BackButton?.hide?.();
+            } catch {}
+
+            const user = getUserData();
+            if (user.isBrowserUser && !localStorage.getItem('browserUsername')) {
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('mainApp').style.display = 'none';
+            } else {
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainApp').style.display = 'flex';
+                initApp();
+            }
+        });
     </script>
 </body>
 </html>

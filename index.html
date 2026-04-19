@@ -36,6 +36,7 @@ body{
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh; /* dynamic viewport for mobile browsers */
 }
 
 /* Overlays */
@@ -51,8 +52,8 @@ body{
 .ov-btn:active{transform:scale(.97);opacity:0.8;}
 .warn-box{background:rgba(255,201,60,.08);border:1px solid rgba(255,201,60,.25);border-radius:12px;padding:14px 18px;font-size:13px;color:var(--gold);line-height:1.6;max-width:300px;}
 
-/* App Shell */
-#app{flex:1;display:flex;flex-direction:column;opacity:0;transition:opacity .35s;height:100%;overflow:hidden;}
+/* App Shell — flex column, nav always at bottom */
+#app{flex:1;display:flex;flex-direction:column;opacity:0;transition:opacity .35s;min-height:0;overflow:hidden;}
 #app.ready{opacity:1;}
 
 /* Topbar */
@@ -63,14 +64,24 @@ body{
 .tb-level{font-size:10px;color:var(--tg-theme-hint-color);}
 .coin-badge{display:flex;align-items:center;gap:6px;background:rgba(255,201,60,.1);border:1px solid rgba(255,201,60,.3);border-radius:20px;padding:6px 13px;font-family:'Orbitron';font-size:13px;font-weight:700;color:var(--gold);}
 
-/* Screens Container */
-#screens{flex:1;overflow:hidden;position:relative;}
-.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));display:none;}
+/* Screens Container — takes remaining space between topbar and nav */
+#screens{flex:1;overflow:hidden;position:relative;min-height:0;}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding-bottom:8px;display:none;}
 .screen::-webkit-scrollbar{display:none;}
 .screen.active{display:block;}
 
-/* Navigation */
-#nav{height:calc(var(--nav-h) + env(safe-area-inset-bottom));flex-shrink:0;display:grid;grid-template-columns:repeat(5,1fr);background:var(--tg-theme-bg-color);border-top:1px solid rgba(255,255,255,0.08);padding-bottom:env(safe-area-inset-bottom);}
+/* Navigation — always visible, flex-shrink:0 prevents it being pushed off */
+#nav{
+  height:calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+  flex-shrink:0;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  background:var(--tg-theme-bg-color);
+  border-top:1px solid rgba(255,255,255,0.08);
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+  position:relative; /* not fixed — stays in flow */
+  z-index:50;
+}
 .nb{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;cursor:pointer;color:var(--tg-theme-hint-color);transition:color .2s;padding:6px 0;position:relative;}
 .nb.on{color:var(--tg-theme-link-color);}
 .nb .ni{font-size:20px;line-height:1;}
@@ -425,7 +436,7 @@ body{
 // ================================================================
 // HOPECOIN v2.1 — Full Updated with BackButton & Persistent Sync
 // ================================================================
-const SCRIPT  = 'https://script.google.com/macros/s/AKfycbyLoSsjtnRgv1hwQnZ8PK0M3uJ6LxMso0Kq3pRoUXrQlgZAFtn6p63N7Tpk16pTs4Sj/exec';
+const SCRIPT  = 'https://script.google.com/macros/s/AKfycbx1ooqhRFCkU7wICEtm51Z7Rr_uxYYsBUonQW06R6iyqV-j5yAcxrdZkJ5Mznnrw1LY/exec';
 const BOT     = 'hopenityappbot';
 const APP     = 'https://smzamil1.github.io/37mytop/';
 const LOGO    = 'https://i.ibb.co.com/RkZQQ5R2/IMG-20260413-112836-438-modified.png';
@@ -773,12 +784,14 @@ function renderAll() {
   const av  = (S.firstName||'P')[0].toUpperCase();
   const f   = fmt;
 
+  // Topbar — show current spendable coins
   document.getElementById('tbAv').textContent    = av;
   document.getElementById('tbName').textContent  = S.firstName;
   document.getElementById('tbLevel').textContent = `Lv.${S.level} · ${lvN}`;
-  document.getElementById('tbCoins').textContent = f(S.coins);
+  document.getElementById('tbCoins').textContent = f(S.coins); // spendable balance
 
-  document.getElementById('balNum').textContent  = f(S.coins);
+  // Tap screen
+  document.getElementById('balNum').textContent  = f(S.coins);  // main balance display
   document.getElementById('balSub').textContent  = `+${S.tapPower} per tap`;
   setW('enBar', (S.energy/S.maxEnergy)*100);
   document.getElementById('enTxt').textContent   = `${Math.floor(S.energy)}/${S.maxEnergy}`;
@@ -787,6 +800,7 @@ function renderAll() {
   document.getElementById('bbReg').textContent   = S.regenRate;
   document.getElementById('bbAuto').textContent  = S.auto > 0 ? `+${S.auto}/5s` : 'OFF';
 
+  // Level bar — based on totalCoins (lifetime earned)
   const curXP = LV_XP[Math.min(S.level-1,9)];
   const nxtXP = LV_XP[Math.min(S.level, 9)];
   const pct   = S.level >= 10 ? 100 : Math.max(0, Math.min(100, ((S.totalCoins - curXP)/(nxtXP - curXP))*100));
@@ -797,21 +811,24 @@ function renderAll() {
 
   updateDailyBtn();
 
-  document.getElementById('stTaps').textContent  = f(S.totalTaps);
-  document.getElementById('stTotal').textContent = f(S.totalCoins);
-  document.getElementById('stRefs').textContent  = S.refs;
-  document.getElementById('stStreak').textContent= S.dailyStreak;
+  // Tap screen stats
+  document.getElementById('stTaps').textContent   = f(S.totalTaps);
+  document.getElementById('stTotal').textContent  = f(S.totalCoins); // all-time earned
+  document.getElementById('stRefs').textContent   = S.refs;
+  document.getElementById('stStreak').textContent = S.dailyStreak;
 
+  // Game stats
   const gp = document.getElementById('gsPlayed'); if(gp) gp.textContent = S.gamesPlayed;
   const gw = document.getElementById('gsWon');    if(gw) gw.textContent = S.gamesWon;
   const ge = document.getElementById('gsEarned'); if(ge) ge.textContent = f(S.gamesEarned);
   const gs = document.getElementById('gsStreak'); if(gs) gs.textContent = S.gameStreak;
 
+  // Profile
   document.getElementById('prAv').textContent    = av;
   document.getElementById('prName').textContent  = S.firstName;
   document.getElementById('prId').textContent    = `ID: ${S.userId}`;
   document.getElementById('prBadge').textContent = `${lvN} · Lv.${S.level}`;
-  document.getElementById('prTotal').textContent = f(S.totalCoins);
+  document.getElementById('prTotal').textContent = f(S.totalCoins); // ranking value
   document.getElementById('prTaps').textContent  = f(S.totalTaps);
   document.getElementById('prRefs').textContent  = S.refs;
 
@@ -999,69 +1016,64 @@ async function buyUpg(type) {
 
 // ---------- REFERRAL ----------
 function buildInviteLink() {
-  // Always use bot t.me link so both browser and Telegram users get proper referral
-  return `https://t.me/${BOT}?start=HOPE${S.userId}`;
+  // Always use the bot t.me link (works for both Telegram and browser users)
+  return 'https://t.me/' + BOT + '?start=HOPE' + S.userId;
 }
 
 function copyRef() {
   const url = buildInviteLink();
-  // Copy to clipboard
-  const doCopy = () => {
-    try {
-      navigator.clipboard.writeText(url).then(() => {}).catch(() => {
-        const ta = document.createElement('textarea');
-        ta.value = url; document.body.appendChild(ta); ta.select();
-        document.execCommand('copy'); document.body.removeChild(ta);
-      });
-    } catch(_) {}
-  };
-  doCopy();
 
-  // If inside Telegram, also send the link as a message in the bot chat
-  if (IN_TG && TW?.sendData) {
-    // sendData sends to bot — but only works from keyboard buttons, not inline
-    // Instead, use switchInlineQuery or openTelegramLink to bot chat
+  // 1. Copy to clipboard
+  try {
+    navigator.clipboard.writeText(url).catch(() => fallbackCopy(url));
+  } catch(e) { fallbackCopy(url); }
+
+  // 2. If inside Telegram, also send the link as a message to bot chat
+  if (IN_TG && TW) {
+    try {
+      // Use switchInlineQuery to pre-fill bot chat, or just open the bot chat
+      // The user will see their ref link text sent — we use sendData for mini-apps
+      // Actually: best approach is openTelegramLink to share directly
+      const shareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(url) +
+        '&text=' + encodeURIComponent('🪙 My HopeCoin referral link — join & earn!');
+      // Open bot chat directly with the start command so it shows the link
+      TW.openTelegramLink('https://t.me/' + BOT + '?start=copy_' + S.userId);
+    } catch(e) {}
   }
-  // Open bot chat with the link pre-filled so user can send it themselves
-  if (IN_TG) {
-    toast('📋 Link copied! Also opening bot chat…');
-    setTimeout(() => {
-      try {
-        // Open bot chat — user can paste and send to others
-        TW?.openTelegramLink?.(`https://t.me/${BOT}?start=HOPE${S.userId}`);
-      } catch(_) {}
-    }, 800);
-  } else {
-    toast('📋 Invite link copied!');
-  }
+
+  toast('📋 Link copied!' + (IN_TG ? ' Bot chat opened — send your link!' : ''));
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
 }
 
 function shareRef() {
   const url  = buildInviteLink();
-  const text = '🪙 Join HopeCoin! Tap coins, play games & earn free rewards!';
-  const shareLink = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+  const text = encodeURIComponent('🪙 Join HopeCoin! Tap coins, play games & earn rewards!');
+  const link = 'https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + text;
   try {
-    if (TW?.openTelegramLink) TW.openTelegramLink(shareLink);
-    else window.open(shareLink, '_blank');
-  } catch(_) { window.open(shareLink, '_blank'); }
+    if (TW?.openTelegramLink) TW.openTelegramLink(link);
+    else window.open(link, '_blank');
+  } catch(_) { window.open(link, '_blank'); }
 }
 
-// Send ref link directly to bot chat (new function for bot chat button)
 function sendRefToBot() {
   const url = buildInviteLink();
-  if (IN_TG) {
-    // Copy first
-    try { navigator.clipboard.writeText(url); } catch(_) {}
-    // Open bot chat with prefilled message
-    try {
-      TW?.openTelegramLink?.(`https://t.me/${BOT}?start=copy`);
-    } catch(_) {}
-    toast('📋 Link copied & opening bot chat!');
-  } else {
-    // Browser: just copy
-    try { navigator.clipboard.writeText(url); } catch(_) {}
-    toast('📋 Link copied: ' + url);
-  }
+  // Copy first
+  try { navigator.clipboard.writeText(url); } catch(e) { fallbackCopy(url); }
+  // Open Telegram share sheet
+  const link = 'https://t.me/share/url?url=' + encodeURIComponent(url) +
+    '&text=' + encodeURIComponent('🪙 Join HopeCoin with my referral link!');
+  try {
+    if (TW?.openTelegramLink) TW.openTelegramLink(link);
+    else window.open(link, '_blank');
+  } catch(_) { window.open(link, '_blank'); }
+  toast('📋 Link copied & share sheet opened!');
 }
 
 // ---------- TASKS ----------

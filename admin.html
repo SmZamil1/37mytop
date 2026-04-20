@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>HopeCoin Admin Panel</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#08111f;
+  --bg2:#0f1d30;
+  --text:#ddeeff;
+  --text2:#4a7090;
+  --accent:#00c8ff;
+  --green:#00e898;
+  --gold:#ffc93c;
+}
+html,body{height:100%;font-family:'Inter',sans-serif;}
+body{background:var(--bg);color:var(--text);display:flex;flex-direction:column;height:100vh;}
+.container{flex:1;overflow-y:auto;padding:16px;max-width:1000px;margin:0 auto;width:100%;}
+header{background:var(--bg2);padding:16px;border-bottom:1px solid rgba(255,255,255,0.1);text-align:center;}
+h1{font-family:'Orbitron',sans-serif;font-size:24px;color:var(--gold);margin-bottom:6px;}
+.auth-gate{text-align:center;padding:40px 20px;}
+.auth-gate h2{font-size:18px;margin-bottom:20px;color:var(--accent);}
+.auth-btn{background:var(--accent);color:#000;padding:12px 24px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:16px;}
+.auth-btn:hover{opacity:0.8;}
+.dashboard{display:none;}
+.dashboard.visible{display:block;}
+.tabs{display:flex;gap:8px;margin-bottom:20px;overflow-x:auto;flex-wrap:wrap;}
+.tab{padding:8px 16px;background:var(--bg2);border:1px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;font-weight:600;color:var(--text2);transition:all .2s;}
+.tab.active{background:var(--accent);color:#000;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+.card{background:var(--bg2);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px;margin-bottom:12px;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;}
+.stat-box{background:var(--bg2);padding:16px;border-radius:8px;text-align:center;}
+.stat-val{font-family:'Orbitron',sans-serif;font-size:24px;font-weight:900;color:var(--gold);}
+.stat-lbl{font-size:11px;color:var(--text2);margin-top:6px;text-transform:uppercase;}
+.form-group{margin-bottom:12px;}
+.form-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:600;}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:8px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,0.1);color:var(--text);border-radius:6px;font-family:'Inter',sans-serif;font-size:13px;}
+.form-group textarea{resize:vertical;min-height:80px;}
+.btn-primary{background:var(--accent);color:#000;padding:10px 16px;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px;}
+.btn-primary:hover{opacity:0.8;}
+.btn-danger{background:#ff4d6a;color:#fff;padding:8px 12px;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px;}
+.btn-danger:hover{opacity:0.8;}
+.user-item{display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:8px;font-size:13px;}
+.user-name{font-weight:600;}
+.user-coins{color:var(--gold);}
+.table{width:100%;border-collapse:collapse;font-size:12px;}
+.table th{background:rgba(255,255,255,0.05);padding:8px;text-align:left;font-weight:700;color:var(--text2);}
+.table td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.badge{display:inline-block;padding:2px 8px;background:rgba(0,200,255,.2);border-radius:4px;font-size:10px;color:var(--accent);}
+.loading{text-align:center;padding:40px;color:var(--text2);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>HopeCoin Admin Panel</h1>
+  <div id="adminInfo" style="font-size:12px;color:var(--text2);">Loading...</div>
+</header>
+
+<!-- AUTH GATE -->
+<div id="authGate" class="auth-gate">
+  <h2>Admin Access Required</h2>
+  <p style="margin-bottom:20px;color:var(--text2);">Click to authenticate with Telegram</p>
+  <button class="auth-btn" onclick="authenticateAdmin()">🔐 Login with Telegram</button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="dashboard">
+  <div class="container">
+    
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('overview',this)">📊 Overview</div>
+      <div class="tab" onclick="switchTab('users',this)">👥 Users</div>
+      <div class="tab" onclick="switchTab('games',this)">🎮 Games</div>
+      <div class="tab" onclick="switchTab('groups',this)">🫂 Groups</div>
+      <div class="tab" onclick="switchTab('leaderboard',this)">🏆 Leaderboard</div>
+      <div class="tab" onclick="switchTab('broadcast',this)">📢 Broadcast</div>
+    </div>
+    
+    <!-- OVERVIEW TAB -->
+    <div id="overview" class="tab-content active">
+      <h2 style="margin-bottom:16px;">Dashboard Overview</h2>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-val" id="totalUsers">0</div>
+          <div class="stat-lbl">Total Users</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="activeToday">0</div>
+          <div class="stat-lbl">Active Today</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="totalCoins">0</div>
+          <div class="stat-lbl">Total Coins</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="gamesPlayed">0</div>
+          <div class="stat-lbl">Games Played</div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3 style="margin-bottom:12px;">System Status</h3>
+        <div style="font-size:13px;color:var(--text2);line-height:1.6;">
+          <p>✅ Bot: Online</p>
+          <p>✅ Database: Connected</p>
+          <p>✅ Web App: Running</p>
+          <p>📅 Last Updated: <span id="lastUpdate">—</span></p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- USERS TAB -->
+    <div id="users" class="tab-content">
+      <h2 style="margin-bottom:16px;">User Management</h2>
+      <div class="card">
+        <input type="text" placeholder="Search user by name or ID..." style="width:100%;margin-bottom:12px;" id="userSearch" onkeyup="searchUsers(this.value)">
+        <div id="userList"></div>
+      </div>
+    </div>
+    
+    <!-- GAMES TAB -->
+    <div id="games" class="tab-content">
+      <h2 style="margin-bottom:16px;">Game Configuration</h2>
+      
+      <div class="card">
+        <h3 style="margin-bottom:12px;">Edit Game Settings</h3>
+        <div class="form-group">
+          <label>Game</label>
+          <select id="gameSelect" onchange="loadGameConfig(this.value)">
+            <option value="">Select a game...</option>
+            <option value="g_merge">Merge Game</option>
+            <option value="g_memory">Memory Match</option>
+            <option value="g_trivia">Trivia Quiz</option>
+            <option value="g_simon">Simon Says</option>
+          </select>
+        </div>
+        
+        <div id="gameConfig" style="display:none;">
+          <div class="form-group">
+            <label>Daily Limit</label>
+            <input type="number" id="dailyLimit" min="1" max="100">
+          </div>
+          <div class="form-group">
+            <label>Entry Fee (coins)</label>
+            <input type="number" id="entryFee" min="0" max="10000">
+          </div>
+          <div class="form-group">
+            <label>Base Reward (coins)</label>
+            <input type="number" id="baseReward" min="0" max="10000">
+          </div>
+          <div class="form-group">
+            <label>Active</label>
+            <select id="gameActive">
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+          <button class="btn-primary" onclick="saveGameConfig()">💾 Save Game Config</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- GROUPS TAB -->
+    <div id="groups" class="tab-content">
+      <h2 style="margin-bottom:16px;">Group Management</h2>
+      
+      <div class="card">
+        <h3 style="margin-bottom:12px;">Add Keyword Response</h3>
+        <div class="form-group">
+          <label>Keyword (trigger word)</label>
+          <input type="text" id="kwKeyword" placeholder="e.g., hello">
+        </div>
+        <div class="form-group">
+          <label>Response Message</label>
+          <textarea id="kwResponse" placeholder="Reply message"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Button Text (optional)</label>
+          <input type="text" id="kwBtnText" placeholder="e.g., Click Here">
+        </div>
+        <div class="form-group">
+          <label>Button URL (optional)</label>
+          <input type="text" id="kwBtnUrl" placeholder="https://...">
+        </div>
+        <button class="btn-primary" onclick="saveKeyword()">➕ Add Keyword</button>
+      </div>
+      
+      <div class="card">
+        <h3 style="margin-bottom:12px;">Active Keywords</h3>
+        <table class="table">
+          <thead>
+            <tr><th>Keyword</th><th>Response Preview</th><th>Action</th></tr>
+          </thead>
+          <tbody id="keywordList"></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- LEADERBOARD TAB -->
+    <div id="leaderboard" class="tab-content">
+      <h2 style="margin-bottom:16px;">Leaderboard Control</h2>
+      
+      <div class="card">
+        <h3 style="margin-bottom:12px;">Current Rankings</h3>
+        <div class="form-group">
+          <label>View Type</label>
+          <select onchange="loadLeaderboard(this.value)">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="refs">Referral</option>
+          </select>
+        </div>
+        <div id="lbDisplay"></div>
+      </div>
+      
+      <div class="card">
+        <h3 style="margin-bottom:12px;">Manual Reset</h3>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Force reset leaderboard and award prizes</p>
+        <button class="btn-primary" onclick="resetLeaderboard('daily')">🔄 Reset Daily LB</button>
+        <button class="btn-primary" onclick="resetLeaderboard('weekly')" style="margin-left:8px;">🔄 Reset Weekly LB</button>
+      </div>
+    </div>
+    
+    <!-- BROADCAST TAB -->
+    <div id="broadcast" class="tab-content">
+      <h2 style="margin-bottom:16px;">Message Broadcasting</h2>
+      
+      <div class="card">
+        <h3 style="margin-bottom:12px;">Send Direct Message</h3>
+        <div class="form-group">
+          <label>User ID or @username</label>
+          <input type="text" id="dmUser" placeholder="e.g., 123456789">
+        </div>
+        <div class="form-group">
+          <label>Message</label>
+          <textarea id="dmMessage" placeholder="Message content"></textarea>
+        </div>
+        <button class="btn-primary" onclick="sendDM()">📤 Send DM</button>
+      </div>
+      
+      <div class="card">
+        <h3 style="margin-bottom:12px;">Broadcast to All Users</h3>
+        <div class="form-group">
+          <label>Announcement Message</label>
+          <textarea id="broadcastMsg" placeholder="Message will be sent to all users"></textarea>
+        </div>
+        <button class="btn-primary" style="background:#ff6b9d;" onclick="sendBroadcast()">📢 Broadcast to All</button>
+        <p style="font-size:11px;color:#ff6b9d;margin-top:8px;">⚠️ This will send message to ALL users</p>
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+<script>
+const SCRIPT = 'https://script.google.com/macros/s/AKfycbxmp_IKgm7Yc_DOdmO9KAla92Zn-IKbyldJ-kSQeTwtjR6TeAp5QTwvx37_M2HHY8gz/exec';
+let TW = window.Telegram?.WebApp;
+let tgUser = TW?.initDataUnsafe?.user || null;
+let adminId = null;
+const ADMIN_IDS = ['6167568466']; // Add your admin IDs here
+
+window.addEventListener('load', () => {
+  if (TW) { TW.ready(); TW.expand(); }
+  checkAdmin();
+});
+
+function checkAdmin() {
+  if (tgUser?.id && ADMIN_IDS.includes(String(tgUser.id))) {
+    adminId = tgUser.id;
+    showDashboard();
+  } else {
+    showAuthGate();
+  }
+}
+
+function authenticateAdmin() {
+  if (!tgUser) {
+    const s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://telegram.org/js/telegram-widget.js?22';
+    s.setAttribute('data-telegram-login', 'hopenityappbot');
+    s.setAttribute('data-size', 'large');
+    s.setAttribute('data-onauth', 'onTgAuth(user)');
+    s.setAttribute('data-request-access', 'write');
+    document.body.appendChild(s);
+  }
+}
+
+window.onTgAuth = function(user) {
+  tgUser = user;
+  checkAdmin();
+};
+
+function showAuthGate() {
+  document.getElementById('authGate').style.display = 'block';
+  document.getElementById('dashboard').classList.remove('visible');
+}
+
+function showDashboard() {
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('dashboard').classList.add('visible');
+  document.getElementById('adminInfo').textContent = `Logged in as: ${tgUser.first_name} (${tgUser.id})`;
+  loadDashboard();
+}
+
+function switchTab(tabName, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById(tabName).classList.add('active');
+  btn.classList.add('active');
+}
+
+async function loadDashboard() {
+  try {
+    // Load stats (would fetch from backend)
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
+  } catch(e) {
+    console.warn('Dashboard load failed:', e);
+  }
+}
+
+function loadGameConfig(gameId) {
+  if (!gameId) {
+    document.getElementById('gameConfig').style.display = 'none';
+    return;
+  }
+  document.getElementById('gameConfig').style.display = 'block';
+  // Load game config from backend
+}
+
+function saveGameConfig() {
+  alert('Game config saved (stub - integrate with backend)');
+}
+
+function saveKeyword() {
+  alert('Keyword added (stub - integrate with backend)');
+  document.getElementById('kwKeyword').value = '';
+  document.getElementById('kwResponse').value = '';
+  document.getElementById('kwBtnText').value = '';
+  document.getElementById('kwBtnUrl').value = '';
+}
+
+function loadLeaderboard(type) {
+  alert('Loading ' + type + ' leaderboard (stub - integrate with backend)');
+}
+
+function resetLeaderboard(type) {
+  if (confirm('Reset ' + type + ' leaderboard and award prizes?')) {
+    alert('Leaderboard reset (stub - integrate with backend)');
+  }
+}
+
+function searchUsers(query) {
+  if (!query) {
+    document.getElementById('userList').innerHTML = '<div class="loading">Enter search term</div>';
+    return;
+  }
+  alert('Searching for: ' + query + ' (stub - integrate with backend)');
+}
+
+function sendDM() {
+  const user = document.getElementById('dmUser').value;
+  const msg = document.getElementById('dmMessage').value;
+  if (!user || !msg) { alert('Fill all fields'); return; }
+  alert('DM sent to ' + user + ' (stub - integrate with backend)');
+}
+
+function sendBroadcast() {
+  const msg = document.getElementById('broadcastMsg').value;
+  if (!msg) { alert('Enter message'); return; }
+  if (!confirm('Send to ALL users? This cannot be undone.')) return;
+  alert('Broadcasting...' + ' (stub - integrate with backend)');
+}
+</script>
+
+</body>
+</html>

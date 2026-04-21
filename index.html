@@ -532,7 +532,7 @@ body{
 // ================================================================
 // HOPECOIN v3.0
 // ================================================================
-const SCRIPT  = 'https://script.google.com/macros/s/AKfycbzda3y1atlkU4bxW2tQc08nBvrg6oI8hZtR9zTZFuebyx9zRhlRCkw7LzS3BmvSxcC7/exec';
+const SCRIPT  = 'https://script.google.com/macros/s/AKfycbxcZk2bcyvD0Vkf5iRSWeyQZxK412ZGa96detWL5ROh3FqKThpiy6hqKQiAZ6ECV30t/exec';
 const BOT     = 'hopenityappbot';
 const APP     = 'https://smzamil1.github.io/37mytop/';
 const ADMIN_UID = '6167568466';
@@ -623,7 +623,7 @@ async function bootWithTg() {
   S.userId    = String(tgUser.id);
   S.username  = tgUser.username || '';
   S.firstName = tgUser.first_name || 'Player';
-  isAdmin     = S.userId === ADMIN_UID;
+  isAdmin     = S.userId === ADMIN_UID; // will be confirmed from server
 
   loadLocal(); recalc(); renderAll();
   $('app').classList.add('ready');
@@ -653,7 +653,7 @@ async function bootWithTg() {
   const ref = TW?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get('startapp') || '';
   if (ref && ref!=='HOPE'+S.userId && ref.startsWith('HOPE') && !S._refDone) {
     try {
-      const r=await apiPost({action:'referral',referrerId:ref.replace('HOPE',''),newUserId:S.userId,newUserName:S.firstName});
+      const r=await apiPost({action:'referral',referrerId:ref.replace('HOPE',''),newUserId:S.userId,uid:S.userId,newUserName:S.firstName});
       if (r?.success) { S._refDone=true; saveLocal(); toast('🎉 Joined via referral!'); }
     } catch(_){}
   }
@@ -693,39 +693,61 @@ function showAuthGate() {
 
 // ── API ──
 async function apiGet(params) {
-  try { const r=await fetch(SCRIPT+'?'+new URLSearchParams(params).toString(),{method:'GET',redirect:'follow'}); return JSON.parse(await r.text()); }
-  catch(e) { console.warn('apiGet fail:',e); return null; }
+  try {
+    const r=await fetch(SCRIPT+'?'+new URLSearchParams(params).toString(),{method:'GET',redirect:'follow'});
+    const txt=await r.text(); return JSON.parse(txt);
+  } catch(e) { console.warn('apiGet fail:',e); return null; }
 }
 
 async function apiPost(body) {
   try {
-    const r=await fetch(SCRIPT,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
-    return JSON.parse(await r.text());
+    const r=await fetch(SCRIPT,{method:'POST',redirect:'follow',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(body)});
+    const txt=await r.text(); return JSON.parse(txt);
   } catch(e) { console.warn('apiPost fail:',e); return null; }
 }
 
 // ── SERVER SYNC ──
 async function loadServer() {
   try {
-    const d=await apiGet({action:'getUser',userId:S.userId});
+    const d=await apiGet({action:'getUser',userId:S.userId,uid:S.userId});
     if (!d) return;
     if (d.banned) { showBan(); return; }
     if (d.found) {
-      S.coins      = Math.max(S.coins,      +d.coins   ||0);
-      S.totalCoins = Math.max(S.totalCoins, +d.total   ||0);
-      S.totalTaps  = Math.max(S.totalTaps,  +d.taps    ||0);
-      S.level      = Math.max(S.level,      +d.level   ||1);
-      S.refs       = +d.refs    || 0;
-      S.dailyStreak= +d.streak  || 0;
-      S.tapPwr     = Math.max(S.tapPwr,  +d.tapLvl  ||1);
-      S.enCap      = Math.max(S.enCap,   +d.enLvl   ||1);
-      S.regen      = Math.max(S.regen,   +d.regenLvl||1);
-      S.auto       = Math.max(S.auto,    +d.autoLvl ||0);
-      S.gamesPlayed= Math.max(S.gamesPlayed,+d.gp||0);
-      S.gamesWon   = Math.max(S.gamesWon,   +d.gw||0);
-      S.weekCoins  = +d.weekCoins  || 0;
-      S.dailyCoins = +d.dailyCoins || 0;
+      // Use MAX: server wins for most fields (prevents local data going stale)
+      S.coins       = Math.max(S.coins,       +d.coins      ||0);
+      S.totalCoins  = Math.max(S.totalCoins,  +d.totalCoins ||0);
+      S.totalTaps   = Math.max(S.totalTaps,   +d.taps       ||0);
+      S.level       = Math.max(S.level,       +d.level      ||1);
+      S.refs        = +d.refs         || 0;
+      S.dailyStreak = +d.streak       || 0;
+      S.tapPwr      = Math.max(S.tapPwr,  +d.tapLvl   ||1);
+      S.enCap       = Math.max(S.enCap,   +d.enLvl    ||1);
+      S.regen       = Math.max(S.regen,   +d.regenLvl ||1);
+      S.auto        = Math.max(S.auto,    +d.autoLvl  ||0);
+      S.gamesPlayed = Math.max(S.gamesPlayed, +d.gamesPlayed||0);
+      S.gamesWon    = Math.max(S.gamesWon,    +d.gamesWon   ||0);
+      S.weekCoins   = +d.weekCoins   || 0;
+      S.dailyCoins  = +d.dailyCoins  || 0;
       if (d.lastDaily) S.lastDaily = +d.lastDaily;
+      // Load server-side game plays for today
+      if (d.gamePlaysToday) {
+        const today=new Date().toISOString().slice(0,10);
+        if (!S.gamePlays) S.gamePlays={};
+        Object.keys(d.gamePlaysToday).forEach(k=>{
+          const serverPlays=d.gamePlaysToday[k]||0;
+          const localPlays=(S.gamePlays[k]&&S.gamePlays[k].date===today)?S.gamePlays[k].count||0:0;
+          const maxPlays=Math.max(serverPlays,localPlays);
+          S.gamePlays[k]={date:today,count:maxPlays};
+        });
+      }
+      // Check admin
+      isAdmin = !!d.isAdmin;
+      if (isAdmin) {
+        const navMe=$('navMe');
+        if(navMe){navMe.querySelector('.ni').textContent='🛡️';navMe.querySelector('.nl').textContent='ADMIN';}
+      }
       recalc(); renderAll(); saveLocal();
     }
   } catch(e) { console.warn('loadServer fail:',e); }
@@ -736,11 +758,18 @@ async function pushSync() {
   try {
     await apiPost({
       action:'syncTap',uid:S.userId,userId:S.userId,
-      coins:S.coins,total:S.totalCoins,totalCoins:S.totalCoins,
-      taps:S.totalTaps,totalTaps:S.totalTaps,level:S.level,
-      gp:S.gamesPlayed,gw:S.gamesWon,
-      tapLvl:S.tapPwr,enLvl:S.enCap,regenLvl:S.regen,autoLvl:S.auto,
-      weekCoins:S.weekCoins,dailyCoins:S.dailyCoins,
+      coins:S.coins,
+      totalCoins:S.totalCoins,
+      taps:S.totalTaps,
+      level:S.level,
+      gamesPlayed:S.gamesPlayed, gp:S.gamesPlayed,
+      gamesWon:S.gamesWon,       gw:S.gamesWon,
+      tapLvl:S.tapPwr,  tapPwr:S.tapPwr,
+      enLvl:S.enCap,    enCap:S.enCap,
+      regenLvl:S.regen, regen:S.regen,
+      autoLvl:S.auto,   auto:S.auto,
+      weekCoins:S.weekCoins,
+      dailyCoins:S.dailyCoins,
     });
   } catch(_){}
 }
@@ -1126,8 +1155,9 @@ function renderLB(){
     const isSelf=uid===S.userId;
     if(isSelf)selfRank=i+1;
     const col=COLORS[i%COLORS.length];
-    const val=lbType==='refs'?`${u.refs||0} refs`:lbType==='weekly'?fmt(u.week||0)+' 🪙':lbType==='daily'?fmt(u.daily||0)+' 🪙':fmt(u.total||0)+' 🪙';
-    const prize=i<10&&(lbType==='daily'||lbType==='weekly')?`<div class="lb-prize">🎁 ${fmt(prizes[i])} 🪙</div>`:'';
+    const val=lbType==='refs'?`${u.refs||0} refs`:lbType==='weekly'?fmt(u.week||u.weekCoins||0)+' 🪙':lbType==='daily'?fmt(u.daily||u.dailyCoins||0)+' 🪙':fmt(u.coins||0)+' 🪙';
+    const prizeAmt=u.prize||prizes[i]||0;
+    const prize=(i<10&&prizeAmt>0)?`<div class="lb-prize">🎁 +${fmt(prizeAmt)} 🪙 prize</div>`:'';
     return`<div class="lb-item${isSelf?' self':''}">
       <div class="lb-rank" style="color:${i<3?'var(--gold)':'var(--hint)'}">${medals[i]||i+1}</div>
       <div class="lb-av" style="background:${col}22;color:${col}">${name[0].toUpperCase()}</div>
@@ -1235,15 +1265,18 @@ function renderGamesGrid(){
 
 function openGame(key){
   const cfg=GAME_CFG[key]; const isFree=canPlayFree(key);
-  if(!isFree&&cfg.betCost>0&&S.coins<cfg.betCost){toast(`❌ Daily free plays used! Need ${cfg.betCost} 🪙.`);return;}
+  if(!isFree&&cfg.betCost>0&&S.coins<cfg.betCost){toast(`❌ Daily free plays used! Need ${cfg.betCost} 🪙 to continue.`);return;}
   $('modalTitle').textContent=cfg.icon+' '+cfg.name;
   $('modalBody').innerHTML='';
   $('gameModal').classList.add('open');
+  // Count play NOW (before game starts)
   S.gamesPlayed++;
   const isBet=!isFree&&cfg.betCost>0;
   if(isBet){S.coins-=cfg.betCost;toast(`💸 Bet ${cfg.betCost} 🪙!`);}
   incrementGamePlays(key);
   renderGamesGrid(); renderAll(); saveLocal();
+  // Record play server-side (async, don't block)
+  apiPost({action:'recordGamePlay',uid:S.userId,userId:S.userId,gameKey:key,won:false,earnedCoins:0}).catch(()=>{});
   const fns={spin:renderSpin,memory:renderMemory,quiz:renderQuiz,blitz:renderBlitz,scratch:renderScratch,merge:renderMerge,slots:renderSlots,numguess:renderNumGuess,snake:renderSnake,catch:renderCatch};
   const fn=fns[key]; if(fn) fn($('modalBody'),isBet,cfg.betCost);
 }
@@ -1252,12 +1285,46 @@ function closeModal(){
   $('gameModal').classList.remove('open'); $('modalBody').innerHTML='';
   if(window._snakeIv){clearInterval(window._snakeIv);window._snakeIv=null;}
   if(window._catchIv){clearInterval(window._catchIv);window._catchIv=null;}
+  if(window._mergeIv){clearInterval(window._mergeIv);window._mergeIv=null;}
+  window._currentGameKey=null;
   renderGamesGrid(); pushSync();
 }
 
 function rareWin(prizes){const total=prizes.reduce((s,p)=>s+p.weight,0);let r=Math.random()*total;for(const p of prizes){r-=p.weight;if(r<=0)return p.val;}return 0;}
-function addGameCoins(n){S.coins+=n;S.totalCoins+=n;S.weekCoins=(S.weekCoins||0)+n;S.dailyCoins=(S.dailyCoins||0)+n;S.gamesEarned=(S.gamesEarned||0)+n;S.gamesWon++;S.gameStreak++;recalc();renderAll();saveLocal();autoCheckTasks();}
-function gameLoss(){S.gameStreak=0;recalc();renderAll();saveLocal();}
+function addGameCoins(n,gameKey){
+  S.coins+=n; S.totalCoins+=n;
+  S.weekCoins=(S.weekCoins||0)+n; S.dailyCoins=(S.dailyCoins||0)+n;
+  S.gamesEarned=(S.gamesEarned||0)+n; S.gamesWon++; S.gameStreak++;
+  recalc(); renderAll(); saveLocal(); autoCheckTasks();
+  // Record win server-side
+  if(gameKey||window._currentGameKey){
+    apiPost({action:'recordGamePlay',uid:S.userId,userId:S.userId,
+      gameKey:gameKey||window._currentGameKey||'unknown',
+      won:true,earnedCoins:n}).catch(()=>{});
+  }
+  // Auto-close modal after win (game complete)
+  setTimeout(()=>{
+    const modal=$('gameModal');
+    if(modal&&modal.classList.contains('open')){
+      // Keep modal open so user can see result, but add close button countdown
+      const body=$('modalBody');
+      if(body&&!body.querySelector('.auto-close-hint')){
+        const hint=document.createElement('div');
+        hint.className='auto-close-hint';
+        hint.style.cssText='text-align:center;padding:8px;font-size:11px;color:var(--hint);margin-top:8px';
+        hint.textContent='Game complete! Tap ✕ to close.';
+        body.appendChild(hint);
+      }
+    }
+  },300);
+}
+function gameLoss(){
+  S.gameStreak=0;recalc();renderAll();saveLocal();
+  if(window._currentGameKey){
+    apiPost({action:'recordGamePlay',uid:S.userId,userId:S.userId,
+      gameKey:window._currentGameKey,won:false,earnedCoins:0}).catch(()=>{});
+  }
+}
 
 // ── ADMIN PANEL ──
 let adCurrentTab='users';
@@ -1277,7 +1344,7 @@ function adminTab(tab,btn){
 async function adminLoadStats(){
   if(!isAdmin) return;
   try{
-    const d=await apiPost({action:'adminGetStats',adminId:S.userId,userId:S.userId});
+    const d=await apiGet({action:'adminGetStats',adminId:S.userId,userId:S.userId});
     if(d?.ok){
       $('adTotal').textContent=d.total||0;
       $('adToday').textContent=d.todayNew||0;
@@ -1291,7 +1358,7 @@ async function adminLoadUsers(page){
   if(!isAdmin) return;
   page=page||adminPage;
   try{
-    const d=await apiPost({action:'adminGetUsers',adminId:S.userId,userId:S.userId,page});
+    const d=await apiGet({action:'adminGetUsers',adminId:S.userId,userId:S.userId,page:page});
     if(!d?.ok) return;
     const list=$('adUserList'); if(!list) return;
     list.innerHTML=d.users.map(u=>`
@@ -1344,12 +1411,23 @@ async function adminToggleBan(uid,ban){
   }catch(_){toast('❌ Network error.');}
 }
 
+async function adminDMSingleUser(){
+  if(!isAdmin) return;
+  const uid=($('adDmUid')||{value:''}).value.trim();
+  const msg=($('adDmMsg')||{value:''}).value.trim();
+  if(!uid||!msg){toast('❌ Enter user ID and message');return;}
+  try{
+    const r=await apiPost({action:'adminDMUser',adminId:S.userId,userId:S.userId,targetId:uid,message:msg});
+    toast(r?.ok?'✅ DM sent!':'❌ Failed');
+  }catch(_){toast('❌ Error');}
+}
+
 async function adminGiveCoins(){
   const uid=$('adCoinUid')?.value?.trim();
   const amt=+$('adCoinAmt')?.value;
   if(!uid||!amt){toast('❌ Enter user ID and amount');return;}
   try{
-    const r=await apiPost({action:'adminAddCoins',adminId:S.userId,userId:S.userId,targetId:uid,amount:amt});
+    const r=await apiPost({action:'adminAddCoins',adminId:S.userId,userId:S.userId,targetId:uid,targetUid:uid,amount:amt});
     if(r?.ok){toast(`✅ Added ${fmt(amt)} 🪙`);$('adCoinUid').value='';$('adCoinAmt').value='';}
     else toast('❌ '+(r?.error||'Failed'));
   }catch(_){toast('❌ Network error.');}
@@ -1415,7 +1493,7 @@ async function adminResetLB(type){
 async function adminLoadPrizes(){
   if(!isAdmin) return;
   try{
-    const d=await apiPost({action:'adminGetPrizes',adminId:S.userId,userId:S.userId});
+    const d=await apiGet({action:'adminGetPrizes',adminId:S.userId,userId:S.userId});
     const list=$('adPrizeList'); if(!list) return;
     if(!d?.prizes?.length){list.innerHTML='<div style="padding:20px;color:var(--hint);text-align:center">No prizes yet</div>';return;}
     list.innerHTML=d.prizes.map(p=>`<div class="task-item"><div class="task-body"><h4>${p.userName||'Player'} — #${p.rank} ${p.period}</h4><p>+${fmt(p.amount)} 🪙 · ${p.claimed?'✅ Claimed':'⏳ Unclaimed'}</p></div></div>`).join('');
@@ -1468,7 +1546,7 @@ function renderSpin(c){
         currentAngle=targetAngle%(2*Math.PI);
         const won=prizes[pick].val;
         const res=$('spinRes');
-        if(won>0){addGameCoins(won);if(res)res.innerHTML=`🎉 <span style="color:var(--gold)">${labels[pick]} 🪙!</span>`;toast('🎰 '+labels[pick]+'!');}
+        if(won>0){addGameCoins(won,'spin');if(res)res.innerHTML=`🎉 <span style="color:var(--gold)">${labels[pick]} 🪙!</span>`;toast('🎰 '+labels[pick]+'!');}
         else{gameLoss();if(res)res.textContent='😢 No win this time!';}
         spinning=false;if(btn)btn.disabled=false;
       }
@@ -1497,7 +1575,7 @@ function renderMemory(c){
         matched++;
         flipped.forEach(idx=>{const e=document.getElementById('mc'+idx);if(e){e.style.background='rgba(0,232,152,.15)';e.style.borderColor='var(--green)';}});
         flipped=[];lock=false;
-        if(matched===emojis.length){addGameCoins(200);const r=$('memRes');if(r)r.innerHTML=`🎉 <span style="color:var(--gold)">Complete! +200 🪙 in ${moves} moves!</span>`;toast('🧠 +200 🪙!');}
+        if(matched===emojis.length){addGameCoins(200,'memory');const r=$('memRes');if(r)r.innerHTML=`🎉 <span style="color:var(--gold)">Complete! +200 🪙 in ${moves} moves!</span>`;toast('🧠 +200 🪙!');}
       }else{
         setTimeout(()=>{flipped.forEach(idx=>{const e=document.getElementById('mc'+idx);if(e)e.textContent='❓';});flipped=[];lock=false;render();},900);
       }
@@ -1515,7 +1593,7 @@ function renderQuiz(c){
   ];
   let qi=0,score=0;
   function showQ(){
-    if(qi>=questions.length){addGameCoins(score*100);c.innerHTML=`<div style="text-align:center;padding:20px"><div style="font-size:40px;margin-bottom:12px">🏆</div><div style="font-family:Orbitron;font-size:16px;color:var(--gold)">${score}/${questions.length} correct!</div><div style="margin-top:8px;color:var(--hint)">+${score*100} 🪙 earned!</div></div>`;toast(`✅ +${score*100} 🪙!`);return;}
+    if(qi>=questions.length){addGameCoins(score*100,'quiz');c.innerHTML=`<div style="text-align:center;padding:20px"><div style="font-size:40px;margin-bottom:12px">🏆</div><div style="font-family:Orbitron;font-size:16px;color:var(--gold)">${score}/${questions.length} correct!</div><div style="margin-top:8px;color:var(--hint)">+${score*100} 🪙 earned!</div></div>`;toast(`✅ +${score*100} 🪙!`);return;}
     const q=questions[qi];
     c.innerHTML=`<div style="text-align:center;margin-bottom:14px;font-family:Orbitron;font-size:11px;color:var(--hint)">Q${qi+1}/${questions.length}</div>
       <div style="background:var(--bg2);border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;font-weight:700;line-height:1.5">${q.q}</div>
@@ -1540,7 +1618,7 @@ function renderBlitz(c){
     let t=10;
     const iv=setInterval(()=>{t--;const te=$('blTimer');if(te)te.textContent=`${t}s remaining`;
       if(t<=0){clearInterval(iv);running=false;const rw=Math.min(taps*3,300);
-        if(rw>0){addGameCoins(rw);const r=$('blRes');if(r)r.innerHTML=`🎉 <span style="color:var(--gold)">${taps} taps! +${rw} 🪙!</span>`;toast('💥 +'+rw+' 🪙!');}
+        if(rw>0){addGameCoins(rw,'blitz');const r=$('blRes');if(r)r.innerHTML=`🎉 <span style="color:var(--gold)">${taps} taps! +${rw} 🪙!</span>`;toast('💥 +'+rw+' 🪙!');}
         else{gameLoss();const r=$('blRes');if(r)r.textContent='Tap next time!';}}
     },1000);
     const btn2=$('blBtn');
@@ -1566,7 +1644,7 @@ function renderScratch(c){
       const counts={};picks.forEach(p=>{if(p>0)counts[p]=(counts[p]||0)+1;});
       const win=Object.keys(counts).find(k=>counts[k]>=3);
       const res=$('scrRes');
-      if(win){const w=+win;addGameCoins(w);if(res)res.innerHTML=`🎉 <span style="color:var(--gold)">Match! +${w} 🪙!</span>`;toast('🎟️ +'+w+' 🪙!');}
+      if(win){const w=+win;addGameCoins(w,'scratch');if(res)res.innerHTML=`🎉 <span style="color:var(--gold)">Match! +${w} 🪙!</span>`;toast('🎟️ +'+w+' 🪙!');}
       else{gameLoss();if(res)res.textContent='😢 No match this time!';}
     }
   };
@@ -1599,7 +1677,7 @@ function renderMerge(c){
     drawGrid();updateScore();if(!canMove()){endGame(false);}}
   }
   
-  function endGame(won){gameEnded=true;clearInterval(timerInterval);if(won){addGameCoins(score);const res=$('mergeRes');if(res)res.innerHTML=`🎉 <span style="color:var(--gold)">+${score} 🪙!</span>`;toast('🎮 +'+score+' 🪙!');}
+  function endGame(won){gameEnded=true;clearInterval(timerInterval);if(won){addGameCoins(score,'merge');const res=$('mergeRes');if(res)res.innerHTML=`🎉 <span style="color:var(--gold)">+${score} 🪙!</span>`;toast('🎮 +'+score+' 🪙!');}
     else{gameLoss();const res=$('mergeRes');if(res)res.textContent='😢 Game Over!';}
     setTimeout(closeModal,1500);
   }
@@ -1636,6 +1714,7 @@ function renderMerge(c){
 }
 
 function renderSlots(c){
+  window._currentGameKey='slots';
   const syms=['🪙','💎','⭐','🔥','7️⃣','🍀','🎯','💫'];
   const pays={'🪙🪙🪙':5,'💎💎💎':15,'⭐⭐⭐':8,'🔥🔥🔥':8,'7️⃣7️⃣7️⃣':50,'🍀🍀🍀':12};
   let bet=10,spinning=false;
@@ -1654,14 +1733,15 @@ function renderSlots(c){
       [0,1,2].forEach(j=>{const e=document.getElementById('sl'+j);if(e)e.textContent=syms[Math.floor(Math.random()*syms.length)];});
       if(++i3>=20){clearInterval(iv);result.forEach((r2,j)=>{const e=document.getElementById('sl'+j);if(e)e.textContent=r2;});
         const k=result.join(''),m=pays[k]||0,r=$('slRes');
-        if(m>0){const won=bet*m;addGameCoins(won);if(r)r.innerHTML=`🎉 <span style="color:var(--gold)">${m}× +${won} 🪙!</span>`;toast('🎰 +'+won+' 🪙!');}
+        if(m>0){const won=bet*m;addGameCoins(won,'slots');if(r)r.innerHTML=`🎉 <span style="color:var(--gold)">${m}× +${won} 🪙!</span>`;toast('🎰 +'+won+' 🪙!');}
         else{gameLoss();if(r)r.textContent='😢 No match. Lost '+bet+' 🪙.';}
-        spinning=false;$('slBtn').disabled=false;}
+        spinning=false;$('slBtn').disabled=true;$('slBtn').textContent='✓ Done';
     },80);
   };
 }
 
 function renderNumGuess(c){
+  window._currentGameKey='numguess';
   const target=Math.floor(Math.random()*100)+1;let tries=0,won=false;
   c.innerHTML=`<div style="text-align:center;margin-bottom:14px;font-size:13px;color:var(--hint)">Guess 1–100 in 7 tries!</div>
     <div id="ngHint" style="padding:10px;border-radius:10px;background:rgba(0,200,255,.06);color:var(--hint);text-align:center;margin-bottom:12px;font-size:13px">Make your first guess!</div>
@@ -1673,7 +1753,7 @@ function renderNumGuess(c){
     if(won)return;const g=parseInt($('ngInp')?.value||'0');
     if(!g||g<1||g>100){toast('⚠️ Enter 1–100');return;}
     tries++;const te=$('ngT');if(te)te.textContent=tries;const h=$('ngHint');
-    if(g===t){won=true;const rw=Math.max(50,150-(tries-1)*15);addGameCoins(rw);if(h){h.style.background='rgba(0,232,152,.12)';h.style.color='var(--green)';h.textContent='🎉 Correct! +'+rw+' 🪙 in '+tries+' tries!';}toast('✅ +'+rw+' 🪙!');}
+    if(g===t){won=true;const rw=Math.max(50,150-(tries-1)*15);addGameCoins(rw,'numguess');if(h){h.style.background='rgba(0,232,152,.12)';h.style.color='var(--green)';h.textContent='🎉 Correct! +'+rw+' 🪙 in '+tries+' tries!';}toast('✅ +'+rw+' 🪙!');}
     else if(tries>=7){if(h){h.style.background='rgba(255,77,106,.12)';h.style.color='var(--red)';h.textContent='❌ Out of tries! It was '+t;}gameLoss();}
     else{const d=Math.abs(g-t),dir=g<t?'📈 Too Low!':'📉 Too High!',temp=d<5?'🔥 Very close!':d<15?'😐 Closer':'🥶 Far';if(h)h.textContent=dir+' '+temp;}
     const inp=$('ngInp');if(inp){inp.value='';inp.focus();}
@@ -1681,6 +1761,7 @@ function renderNumGuess(c){
 }
 
 function renderSnake(c){
+  window._currentGameKey='snake';
   c.innerHTML=`<div style="display:flex;justify-content:space-between;padding:4px 0 10px;font-family:Orbitron;font-size:13px"><span>Score: <span id="snkScore" style="color:var(--gold)">0</span></span><span id="snkSt" style="color:var(--cyan)">Press Start</span></div>
     <canvas id="snakeCanvas" width="280" height="280" style="border-radius:10px;display:block;margin:0 auto"></canvas>
     <div style="display:flex;gap:10px;margin-top:12px;justify-content:center"><button class="btn" id="snkStart" onclick="startSnake()" style="max-width:130px">▶ Start</button><button class="btn btn-outline" onclick="closeModal()" style="max-width:130px">✕ Quit</button></div>
@@ -1698,15 +1779,16 @@ function renderSnake(c){
     window._snakeIv=setInterval(()=>{if(!running2)return;
       const head={x:(snake[0].x+dir.x+COLS)%COLS,y:(snake[0].y+dir.y+ROWS)%ROWS};
       if(snake.some(s2=>s2.x===head.x&&s2.y===head.y)){clearInterval(window._snakeIv);running2=false;
-        if(score2>0){addGameCoins(score2*10);toast('🐍 +'+score2*10+' 🪙!');}else gameLoss();
+        if(score2>0){addGameCoins(score2*10,'snake');toast('🐍 +'+score2*10+' 🪙!');}else gameLoss();
         const st=$('snkSt');if(st)st.textContent='💀 Score:'+score2;$('snkStart').textContent='▶ Retry';$('snkStart').onclick=startSnake;return;}
       snake.unshift(head);
-      if(head.x===food.x&&head.y===food.y){score2++;addGameCoins(10);const sc=$('snkScore');if(sc)sc.textContent=score2;food={x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)};}else snake.pop();
+      if(head.x===food.x&&head.y===food.y){score2++;S.coins+=10;S.totalCoins+=10;S.weekCoins=(S.weekCoins||0)+10;S.dailyCoins=(S.dailyCoins||0)+10;S.gamesEarned=(S.gamesEarned||0)+10;recalc();renderAll();saveLocal();const sc=$('snkScore');if(sc)sc.textContent=score2;food={x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)};}else snake.pop();
       draw2();},150);};
   document.onkeydown=e=>{const m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(m[e.key]){e.preventDefault();snkDir(...m[e.key]);}};
 }
 
 function renderCatch(c){
+  window._currentGameKey='catch';
   c.innerHTML=`<div style="display:flex;justify-content:space-between;padding:4px 0 10px;font-family:Orbitron;font-size:13px"><span>Caught: <span id="cScore" style="color:var(--gold)">0</span></span><span id="cTimer" style="color:var(--cyan)">30s</span></div>
     <canvas id="catchCanvas" width="280" height="280" style="border-radius:10px;display:block;margin:0 auto"></canvas>
     <button class="btn" id="cStart" onclick="startCatch()" style="margin-top:12px;max-width:150px;display:block;margin-left:auto;margin-right:auto">▶ Start</button>`;
@@ -1720,7 +1802,7 @@ function renderCatch(c){
   window.startCatch=function(){if(run3)return;run3=true;sc3=0;t2=30;coins3=[];const cs=$('cStart');if(cs)cs.style.display='none';
     const tv=setInterval(()=>{t2--;const te=$('cTimer');if(te)te.textContent=t2+'s';
       if(t2<=0){clearInterval(tv);clearInterval(window._catchIv);run3=false;
-        if(sc3>0){addGameCoins(sc3*5);toast('🪙 Caught '+sc3+'! +'+sc3*5+' 🪙');}else gameLoss();
+        if(sc3>0){addGameCoins(sc3*5,'catch');toast('🪙 Caught '+sc3+'! +'+sc3*5+' 🪙');}else gameLoss();
         if(cs){cs.style.display='block';cs.textContent='▶ Play Again';cs.onclick=()=>{run3=false;startCatch();};}
       }},1000);
     window._catchIv=setInterval(()=>{if(!run3)return;if(Math.random()<.3)coins3.push({x:Math.random()*260+10,y:-15});

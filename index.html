@@ -215,6 +215,8 @@ body{
 .lb-timer-info h4{font-size:12px;font-weight:700;margin-bottom:2px;}
 .lb-timer-info p{font-size:10px;color:var(--hint);}
 .lb-timer-val{font-family:'Orbitron';font-size:16px;font-weight:900;color:var(--gold);}
+/* Merge Game */
+.merge-cell{width:52px;height:52px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(0,200,255,.1),rgba(155,89,247,.1));border:1px solid rgba(0,200,255,.2);font-family:'Orbitron';font-weight:700;color:var(--cyan);user-select:none;transition:all .15s;}
 </style>
 </head>
 <body>
@@ -556,7 +558,7 @@ const GAME_CFG = {
   quiz:    {name:'TRIVIA',   icon:'❓',desc:'Answer questions',        reward:'+100 🪙/Q',    freeDaily:5,betCost:20},
   blitz:   {name:'BLITZ TAP',icon:'💥',desc:'Max taps in 10s',         reward:'Up to +300 🪙', freeDaily:3,betCost:30},
   scratch: {name:'SCRATCH',  icon:'🎟️',desc:'Reveal hidden prizes',    reward:'Up to +1000🪙', freeDaily:2,betCost:50},
-  dice:    {name:'DICE',     icon:'🎲',desc:'Roll high to win',        reward:'Win 3× bet',   freeDaily:5,betCost:0},
+  merge:   {name:'MERGE',    icon:'🎮',desc:'Merge tiles to win',      reward:'Up to +500🪙', freeDaily:3,betCost:25},
   slots:   {name:'SLOTS',    icon:'🎰',desc:'Match 3 symbols',         reward:'Up to 50× bet', freeDaily:3,betCost:0},
   numguess:{name:'GUESS',    icon:'🔢',desc:'Find the number',         reward:'+150 🪙',      freeDaily:5,betCost:20},
   snake:   {name:'SNAKE',    icon:'🐍',desc:'Classic snake game',      reward:'+10/food',     freeDaily:2,betCost:25},
@@ -626,6 +628,8 @@ async function bootWithTg() {
   loadLocal(); recalc(); renderAll();
   $('app').classList.add('ready');
   hideLoad();
+  startAutoSync();
+  startRegen();
 
   if (TW?.themeParams) {
     const tp=TW.themeParams;
@@ -770,6 +774,11 @@ function recalc() {
 }
 
 // ── LOOPS ──
+let syncTimer=null;
+function startAutoSync(){
+  if(syncTimer)clearInterval(syncTimer);
+  syncTimer=setInterval(()=>pushSync(),15000);// Sync every 15 seconds
+}
 function startRegen() {
   if (energyTimer) clearInterval(energyTimer);
   energyTimer=setInterval(()=>{
@@ -1214,7 +1223,7 @@ function canPlayFree(k){return getGamePlays(k)<GAME_CFG[k].freeDaily;}
 
 function renderGamesGrid(){
   const grid=$('gamesGrid');if(!grid)return;
-  const ordered=['spin','memory','quiz','blitz','scratch','dice','slots','numguess','snake','catch'];
+  const ordered=['spin','memory','quiz','blitz','scratch','merge','slots','numguess','snake','catch'];
   grid.innerHTML=ordered.map((key,i)=>{
     const g=GAME_CFG[key]; const plays=getGamePlays(key); const free=plays<g.freeDaily;
     const badge=i===0?'<div class="game-badge">HOT</div>':i===1?'<div class="game-badge" style="background:linear-gradient(135deg,var(--green),#00a868)">NEW</div>':'';
@@ -1235,7 +1244,7 @@ function openGame(key){
   if(isBet){S.coins-=cfg.betCost;toast(`💸 Bet ${cfg.betCost} 🪙!`);}
   incrementGamePlays(key);
   renderGamesGrid(); renderAll(); saveLocal();
-  const fns={spin:renderSpin,memory:renderMemory,quiz:renderQuiz,blitz:renderBlitz,scratch:renderScratch,dice:renderDice,slots:renderSlots,numguess:renderNumGuess,snake:renderSnake,catch:renderCatch};
+  const fns={spin:renderSpin,memory:renderMemory,quiz:renderQuiz,blitz:renderBlitz,scratch:renderScratch,merge:renderMerge,slots:renderSlots,numguess:renderNumGuess,snake:renderSnake,catch:renderCatch};
   const fn=fns[key]; if(fn) fn($('modalBody'),isBet,cfg.betCost);
 }
 
@@ -1563,26 +1572,67 @@ function renderScratch(c){
   };
 }
 
-function renderDice(c){
-  let bet=50;
-  c.innerHTML=`<div style="text-align:center"><div style="font-size:72px;margin:10px 0" id="diceVal">🎲</div>
-    <div style="margin-bottom:12px"><div style="font-size:11px;color:var(--hint);margin-bottom:8px">YOUR BET</div>
-    <div style="display:flex;gap:8px;justify-content:center">${[10,25,50,100].map(b=>`<button class="htab${b===50?' on':''}" id="db${b}" onclick="diceBet(${b})">${b}</button>`).join('')}</div></div>
-    <div style="font-family:Orbitron;font-size:13px;color:var(--gold);margin-bottom:12px">Bet: <span id="diceAmt">50</span> 🪙 · Win 3×</div>
-    <button class="btn btn-gold" onclick="rollDice()" style="max-width:180px;margin:0 auto">🎲 ROLL</button>
-    <div class="game-result" id="diceRes"></div></div>`;
-  window.diceBet=function(b){bet=b;$('diceAmt').textContent=b;document.querySelectorAll('[id^=db]').forEach(e=>e.classList.remove('on'));document.getElementById('db'+b)?.classList.add('on');};
-  const faces=['⚀','⚁','⚂','⚃','⚄','⚅'];
-  window.rollDice=function(){
-    if(S.coins<bet){toast('❌ Not enough coins!');return;}
-    S.coins-=bet;renderAll();saveLocal();
-    const my=Math.floor(Math.random()*6);const op=Math.floor(Math.random()*6);
-    const dv=$('diceVal'); if(dv)dv.textContent=faces[my];
-    const res=$('diceRes');
-    if(my>op){const w=bet*3;S.coins+=w;S.totalCoins+=w;S.weekCoins=(S.weekCoins||0)+w;S.dailyCoins=(S.dailyCoins||0)+w;S.gamesEarned=(S.gamesEarned||0)+w;S.gamesWon++;S.gameStreak++;recalc();renderAll();saveLocal();if(res)res.innerHTML=`🎉 <span style="color:var(--gold)">You ${faces[my]} beat ${faces[op]}! +${w} 🪙!</span>`;toast('🎲 +'+w+' 🪙!');}
-    else if(my===op){S.coins+=bet;renderAll();saveLocal();if(res)res.textContent=`🤝 Draw! ${faces[my]} vs ${faces[op]} — bet returned.`;}
-    else{gameLoss();if(res)res.textContent=`😢 Lost! ${faces[my]} vs ${faces[op]}`;}
-  };
+function renderMerge(c){
+  let grid=[2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4];let score=0;let gameEnded=false;let timer=30;let timerInterval=null;
+  const cost=25;
+  
+  function drawGrid(){
+    const gridHtml=$('mergeGrid');if(!gridHtml)return;
+    gridHtml.innerHTML=grid.map((v,i)=>`<div class="merge-cell" id="mc${i}" style="font-size:${v>16?'14px':'18px'};opacity:${v?1:0.3}">${v||'·'}</div>`).join('');
+  }
+  
+  function updateScore(){const s=$('mergeScore');if(s)s.textContent=score;}
+  function updateTimer(){const t=$('mergeTimer');if(t)t.textContent=timer;}
+  
+  function canMove(){for(let i=0;i<16;i++){const val=grid[i];if(!val)return true;if(i%4<3&&grid[i+1]===val)return true;if(i<12&&grid[i+4]===val)return true;}return false;}
+  
+  function moveAndMerge(d){if(gameEnded||!canMove())return;let moved=false;
+    if(d==='left'||d==='right'){for(let r=0;r<4;r++){let row=[];for(let c=0;c<4;c++)if(grid[r*4+c])row.push(grid[r*4+c]);
+      if(d==='right')row.reverse();for(let i=0;i<row.length-1;i++)if(row[i]===row[i+1]){row[i]*=2;score+=row[i];row.splice(i+1,1);}
+      if(d==='right')row.reverse();while(row.length<4)row[d==='right'?'unshift':'push'](0);
+      for(let c=0;c<4;c++){const newV=row[c];const idx=r*4+c;if(grid[idx]!==newV){moved=true;grid[idx]=newV;}}}}
+    else{for(let c=0;c<4;c++){let col=[];for(let r=0;r<4;r++)if(grid[r*4+c])col.push(grid[r*4+c]);
+      if(d==='down')col.reverse();for(let i=0;i<col.length-1;i++)if(col[i]===col[i+1]){col[i]*=2;score+=col[i];col.splice(i+1,1);}
+      if(d==='down')col.reverse();while(col.length<4)col[d==='down'?'unshift':'push'](0);
+      for(let r=0;r<4;r++){const newV=col[r];const idx=r*4+c;if(grid[idx]!==newV){moved=true;grid[idx]=newV;}}}}
+    if(moved){const empty=[];for(let i=0;i<16;i++)if(!grid[i])empty.push(i);if(empty.length){const idx=empty[Math.floor(Math.random()*empty.length)];grid[idx]=Math.random()<0.9?2:4;}
+    drawGrid();updateScore();if(!canMove()){endGame(false);}}
+  }
+  
+  function endGame(won){gameEnded=true;clearInterval(timerInterval);if(won){addGameCoins(score);const res=$('mergeRes');if(res)res.innerHTML=`🎉 <span style="color:var(--gold)">+${score} 🪙!</span>`;toast('🎮 +'+score+' 🪙!');}
+    else{gameLoss();const res=$('mergeRes');if(res)res.textContent='😢 Game Over!';}
+    setTimeout(closeModal,1500);
+  }
+  
+  c.innerHTML=`<div style="text-align:center;padding:12px">
+    <div style="font-family:Orbitron;font-size:13px;color:var(--gold);margin-bottom:12px">Score: <span id="mergeScore">0</span> 🪙 | Timer: <span id="mergeTimer">30</span>s</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px;background:rgba(0,0,0,.3);border-radius:12px;margin-bottom:12px;max-width:240px;margin-left:auto;margin-right:auto" id="mergeGrid"></div>
+    <div style="font-size:12px;color:var(--hint);margin-bottom:8px">Swipe or drag to move tiles</div>
+    <button class="btn btn-green" onclick="mergeMoveLeft()" style="max-width:160px;margin:4px auto">← LEFT</button>
+    <button class="btn btn-green" onclick="mergeMoveRight()" style="max-width:160px;margin:4px auto">RIGHT →</button>
+    <button class="btn btn-green" onclick="mergeMoveUp()" style="max-width:160px;margin:4px auto">↑ UP</button>
+    <button class="btn btn-green" onclick="mergeMoveDown()" style="max-width:160px;margin:4px auto">DOWN ↓</button>
+    <div class="game-result" id="mergeRes"></div></div>`;
+  
+  let startX=0,startY=0;
+  const gridEl=$('mergeGrid');if(gridEl){
+    gridEl.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;startY=e.touches[0].clientY;},{passive:true});
+    gridEl.addEventListener('touchmove',e=>{e.preventDefault();},{passive:false});
+    gridEl.addEventListener('touchend',e=>{
+      const endX=e.changedTouches[0].clientX;const endY=e.changedTouches[0].clientY;
+      const dx=endX-startX;const dy=endY-startY;
+      if(Math.abs(dx)>Math.abs(dy)){dx>30?moveAndMerge('right'):dx<-30&&moveAndMerge('left');}
+      else{dy>30?moveAndMerge('down'):dy<-30&&moveAndMerge('up');}
+    });
+  }
+  
+  window.mergeMoveLeft=()=>moveAndMerge('left');
+  window.mergeMoveRight=()=>moveAndMerge('right');
+  window.mergeMoveUp=()=>moveAndMerge('up');
+  window.mergeMoveDown=()=>moveAndMerge('down');
+  
+  drawGrid();updateScore();updateTimer();
+  timerInterval=setInterval(()=>{timer--;updateTimer();if(timer<=0)endGame(false);},1000);
 }
 
 function renderSlots(c){

@@ -452,9 +452,9 @@ body{
             <input id="adTaskReward" class="admin-input" placeholder="Reward (🪙)" type="number">
             <input id="adTaskIcon" class="admin-input" placeholder="Icon emoji">
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <select id="adTaskType" class="admin-input">
-              <option value="url">URL Visit</option>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <select id="adTaskType" class="admin-input" onchange="toggleTaskInputs()">
+              <option value="url">URL Visit / Join</option>
               <option value="criteria">Auto-Criteria</option>
             </select>
             <select id="adTaskCat" class="admin-input">
@@ -463,7 +463,19 @@ body{
               <option value="special">Special</option>
             </select>
           </div>
-          <input id="adTaskUrl" class="admin-input" placeholder="URL (for URL type tasks)">
+          <div id="urlInputGroup">
+             <input id="adTaskUrl" class="admin-input" placeholder="URL (e.g., https://t.me/hopenity)">
+          </div>
+          <div id="criteriaInputGroup" style="display:none; grid-template-columns:1fr 1fr; gap:8px;">
+            <select id="adTaskCond" class="admin-input">
+              <option value="taps">Total Taps</option>
+              <option value="refs">Total Referrals</option>
+              <option value="games">Games Played</option>
+              <option value="wins">Games Won</option>
+            </select>
+            <input id="adTaskTarget" class="admin-input" placeholder="Target Amount (e.g., 500)" type="number">
+          </div>
+
           <button class="btn btn-green" onclick="adminAddTask()" style="font-size:13px">➕ Add Task</button>
         </div>
         <div class="sec-title">ACTIVE TASKS</div>
@@ -1036,15 +1048,36 @@ function filterTasks(cat,btn){
   renderTasks();
 }
 
-function taskMet(id){const c=CRITERIA[id];if(!c)return true;return c.get(S)>=c.need;}
+function getDynamicCriteria(t) {
+  if (t && t.type === 'criteria' && t.url && t.url.includes(':')) {
+    const parts = t.url.split(':');
+    const cond = parts[0];
+    const need = parseInt(parts[1]) || 0;
+    let current = 0;
+    if (cond === 'taps') current = S.totalTaps;
+    if (cond === 'refs') current = S.refs;
+    if (cond === 'games') current = S.gamesPlayed;
+    if (cond === 'wins') current = S.gamesWon;
+    return { need: need, get: () => current, unit: cond };
+  }
+  return CRITERIA[t.id]; // Fallback to hardcoded ones
+}
+
+function taskMet(id) {
+  const t = tasksData.find(x => x.id === id);
+  const c = getDynamicCriteria(t);
+  if (!c) return true;
+  return c.get(S) >= c.need;
+}
+
 
 function renderTasks() {
   const list=$('taskList'); if(!list)return;
   const tasks=tasksData.filter(t=>taskFilter==='all'||t.category===taskFilter);
   if (!tasks.length) { list.innerHTML=`<div style="text-align:center;padding:40px;color:var(--hint)">No tasks in this category</div>`; return; }
   list.innerHTML=tasks.map(t=>{
-    const done=!!S.tasks[t.id];
-    const c=CRITERIA[t.id];
+        const done=!!S.tasks[t.id];
+    const c=getDynamicCriteria(t);
     const cur=c?Math.min(c.need,c.get(S)):0;
     const pct=c?Math.floor((cur/c.need)*100):0;
     const met=taskMet(t.id);
@@ -1095,6 +1128,13 @@ window.taskClaim=async function(id,reward,btn){
   }catch(_){toast('❌ Network error.');if(btn){btn.disabled=false;btn.textContent='Claim!';}}
 };
 
+window.toggleTaskInputs = function() {
+  const type = document.getElementById('adTaskType').value;
+  document.getElementById('urlInputGroup').style.display = type === 'url' ? 'block' : 'none';
+  document.getElementById('criteriaInputGroup').style.display = type === 'criteria' ? 'grid' : 'none';
+};
+
+  
 // ── LEADERBOARD ──
 async function loadLB(type) {
   lbType=type;
@@ -1449,13 +1489,21 @@ async function adminAddTask(){
   const type=$('adTaskType')?.value;
   const cat=$('adTaskCat')?.value;
   const url=$('adTaskUrl')?.value?.trim();
+  const condition=$('adTaskCond')?.value;
+  const target=$('adTaskTarget')?.value;
+  
   if(!name||!reward){toast('❌ Enter name and reward');return;}
+  if(type==='criteria' && !target){toast('❌ Enter target number');return;}
+  
   try{
-    const r=await apiPost({action:'adminAddTask',adminId:S.userId,userId:S.userId,name,reward,icon,type,category:cat,url});
-    if(r?.ok){toast('✅ Task added!');adminLoadTasks();['adTaskName','adTaskReward','adTaskIcon','adTaskUrl'].forEach(id=>{const el=$(id);if(el)el.value='';});}
-    else toast('❌ '+(r?.error||'Failed'));
+    const r=await apiPost({action:'adminAddTask',adminId:S.userId,userId:S.userId,name,reward,icon,type,category:cat,url,condition,target});
+    if(r?.ok){
+      toast('✅ Task added!'); adminLoadTasks();
+      $('adTaskName').value=''; $('adTaskReward').value=''; $('adTaskUrl').value=''; $('adTaskTarget').value='';
+    } else { toast('❌ '+(r?.error||'Failed')); }
   }catch(_){toast('❌ Network error.');}
 }
+
 
 async function adminLoadTasks(){
   if(!isAdmin) return;

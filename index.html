@@ -209,6 +209,8 @@ body{
 .game-cooldown .cd-icon{font-size:22px;}
 .game-cooldown .cd-txt{font-size:9px;font-weight:700;color:var(--red);font-family:'Orbitron';}
 .game-cooldown .cd-sub{font-size:8px;color:var(--hint);}
+/* Merge game cells */
+.merge-cell{height:52px;background:var(--bg2);border:1px solid rgba(255,255,255,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron';font-weight:900;color:var(--gold);transition:all .15s;}
 </style>
 </head>
 <body>
@@ -520,7 +522,7 @@ body{
 // ================================================================
 // HOPECOIN v3.1 — Real-time Sheet sync + Game close-after-play fix
 // ================================================================
-const SCRIPT  = 'https://script.google.com/macros/s/AKfycbyTYf5hiI2k_jNRlLUJTDwApxpNchir2tvTVu-nbDSAJKYQCkBpvkO1PRa7z-2Hx0gz/exec';
+const SCRIPT  = 'https://script.google.com/macros/s/AKfycbzda3y1atlkU4bxW2tQc08nBvrg6oI8hZtR9zTZFuebyx9zRhlRCkw7LzS3BmvSxcC7/exec';
 const BOT     = 'hopenityappbot';
 const APP     = 'https://smzamil1.github.io/37mytop/';
 const ADMIN_UID = '6167568466';
@@ -646,6 +648,10 @@ async function bootWithTg() {
   startRegen(); startAutoTap(); startAutoSave();
   startAutoSync();
   loadTasks(); loadLB('daily'); loadFriends(); loadPrizes();
+  // Load referral rank for profile display
+  apiGet({action:'getUserRank',uid:S.userId,userId:S.userId,type:'refs'}).then(d=>{
+    if(d?.rank) { S._refRank=d.rank; }
+  }).catch(_=>{});
 
   const urlPrize = new URLSearchParams(location.search).get('claim');
   if (urlPrize) { setTimeout(()=>goScreen('rank'),1000); }
@@ -712,7 +718,14 @@ async function loadServer() {
       S.gamesWon   = +d.gw         || 0;
       S.weekCoins  = +d.weekCoins  || 0;
       S.dailyCoins = +d.dailyCoins || 0;
-      if (d.lastDaily) S.lastDaily = +d.lastDaily;
+      // Properly parse lastDaily from server (can be timestamp ms or date string)
+      if (d.lastDaily) {
+        const ld = +d.lastDaily;
+        S.lastDaily = ld > 1000000000000 ? ld : ld * 1000; // handle ms vs s
+      }
+      // Update display name from server if we got it
+      if (d.name && d.name !== 'Player') S.firstName = d.name;
+      if (d.username) S.username = d.username.replace(/^@/,'');
       recalc(); renderAll(); saveLocal();
     }
   } catch(e) { console.warn('loadServer fail:',e); }
@@ -767,18 +780,21 @@ function startAutoSync(){
   if(syncTimer)clearInterval(syncTimer);
   syncTimer=setInterval(async()=>{
     await pushSync();
-    // Also pull fresh data from sheet every 30s to stay in sync with bot actions
+    // Pull fresh data from sheet every 30s to stay in sync with bot actions
     if(S.initialized) {
-      const d=await apiGet({action:'getUser',userId:S.userId});
-      if(d?.found&&!d?.banned){
-        // Only update values that bot might have changed (refs, streak, prizes)
-        S.refs=+d.refs||S.refs;
-        S.dailyStreak=+d.streak||S.dailyStreak;
-        // Merge coins: take max to avoid rollback from auto-earn
-        const serverCoins=+d.coins||0;
-        if(serverCoins>S.coins) { S.coins=serverCoins; S.totalCoins=Math.max(S.totalCoins,+d.total||0); }
-        recalc(); renderAll(); saveLocal();
-      }
+      try {
+        const d=await apiGet({action:'getUser',userId:S.userId});
+        if(d?.found&&!d?.banned){
+          // Sync refs from server (bot may have updated them)
+          S.refs=+d.refs||S.refs;
+          S.dailyStreak=+d.streak||S.dailyStreak;
+          // Merge coins: take max to avoid rollback from auto-earn
+          const serverCoins=+d.coins||0;
+          if(serverCoins>S.coins) { S.coins=serverCoins; S.totalCoins=Math.max(S.totalCoins,+d.total||0); }
+          if(d.name && d.name!=='Player') S.firstName=d.name;
+          recalc(); renderAll(); saveLocal();
+        }
+      } catch(_){}
     }
   },30000);
 }
@@ -825,7 +841,12 @@ function goScreen(name, btn) {
 
   if (name==='rank')    { loadLB(lbType); loadPrizes(); }
   if (name==='tasks')   { loadTasks(); renderTasks(); }
-  if (name==='profile') { renderFriends(); renderAch(); }
+  if (name==='profile') {
+    renderFriends(); renderAch();
+    // Always reload friends for fresh ref count + reload rank
+    loadFriends();
+    if(!S._cachedRank) loadLB('all');
+  }
   if (name==='games')   renderGamesGrid();
   if (name==='admin')   { adminLoadStats(); adminLoadUsers(1); adminLoadTasks(); }
 }
@@ -837,7 +858,7 @@ function renderAll() {
   const av=(S.firstName||'P')[0].toUpperCase();
 
   $('tbAv').textContent=av;
-  $('tbName').textContent=S.firstName;
+  $('tbName').textContent=S.firstName||'Player';
   $('tbLevel').textContent=`Lv.${S.level} · ${lvN}`;
   $('tbCoins').textContent=fmt(S.coins);
   $('balNum').textContent=fmt(S.coins);
@@ -866,13 +887,25 @@ function renderAll() {
   $('gsEarned').textContent=fmt(S.gamesEarned||0);
   $('gsStreak').textContent=S.gameStreak||0;
 
+  // Profile section — always show real data
   $('prAv').textContent=av;
-  $('prName').textContent=S.firstName;
-  $('prId').textContent=`ID: ${S.userId}`;
+  $('prName').textContent=S.firstName||'Player';
+  $('prId').textContent=`ID: ${S.userId||'—'}`;
   $('prBadge').textContent=`${lvN} · Lv.${S.level}`;
   $('prTotal').textContent=fmt(S.totalCoins);
   $('prTaps').textContent=fmt(S.totalTaps);
   $('prRefs').textContent=S.refs;
+
+  // Update rank from loaded leaderboard data
+  const pr=$('prRank');
+  if(pr) {
+    if(S._cachedRank) {
+      pr.textContent='#'+S._cachedRank;
+    } else if(lbData.length && S.userId) {
+      const pos=lbData.findIndex(u=>String(u.uid||u.userId)===String(S.userId));
+      if(pos>=0) { S._cachedRank=pos+1; pr.textContent='#'+(pos+1); }
+    }
+  }
 
   $('refLink').textContent=`https://t.me/${BOT}?start=HOPE${S.userId}`;
   updateDailyBtn();
@@ -1116,24 +1149,33 @@ function renderLB(){
   let selfRank=-1;
   const html=lbData.slice(0,50).map((u,i)=>{
     const name=u.name||u.firstName||'Player';
-    const uname=u.uname||u.username||'—';
-    const uid=u.uid||u.userId||'';
-    const isSelf=uid===S.userId;
+    const uname=(u.uname||u.username||'—').replace(/^@/,'');
+    const uid=String(u.uid||u.userId||'');
+    const isSelf=uid===String(S.userId);
     if(isSelf)selfRank=i+1;
     const col=COLORS[i%COLORS.length];
-    const val=lbType==='refs'?`${u.refs||0} refs`:lbType==='weekly'?fmt(u.week||0)+' 🪙':lbType==='daily'?fmt(u.daily||0)+' 🪙':fmt(u.total||0)+' 🪙';
+    let val='';
+    if(lbType==='refs')       val=`${u.refs||0} refs`;
+    else if(lbType==='weekly') val=fmt(u.week||0)+' 🪙';
+    else if(lbType==='daily')  val=fmt(u.daily||0)+' 🪙';
+    else                       val=fmt(u.total||0)+' 🪙';
     const prize=i<10&&(lbType==='daily'||lbType==='weekly')?`<div class="lb-prize">🎁 ${fmt(prizes[i])} 🪙</div>`:'';
     return`<div class="lb-item${isSelf?' self':''}">
       <div class="lb-rank" style="color:${i<3?'var(--gold)':'var(--hint)'}">${medals[i]||i+1}</div>
-      <div class="lb-av" style="background:${col}22;color:${col}">${name[0].toUpperCase()}</div>
+      <div class="lb-av" style="background:${col}22;color:${col}">${(name[0]||'?').toUpperCase()}</div>
       <div class="lb-info"><div class="lb-name">${name}${isSelf?' 👈':''}</div><div class="lb-sub">Lv.${u.level||1} · @${uname}</div>${prize}</div>
       <div class="lb-coins">${val}</div></div>`;
   }).join('');
 
   const selfHtml=selfRank>0?`<div style="padding:10px 14px;font-size:12px;color:var(--hint);text-align:center">📍 You are #${selfRank}</div>`:'';
   const el=$('lbList');
-  if(el) el.innerHTML=(html+selfHtml)||`<div style="text-align:center;padding:30px;color:var(--hint)">No players yet!</div>`;
-  const pr=$('prRank'); if(pr) pr.textContent=selfRank>0?'#'+selfRank:'—';
+  if(el) el.innerHTML=(html||`<div style="text-align:center;padding:30px;color:var(--hint)">No players yet!</div>`)+selfHtml;
+  const pr=$('prRank');
+  if(pr) {
+    if(selfRank>0) { pr.textContent='#'+selfRank; S._cachedRank=selfRank; }
+    else if(S._cachedRank) pr.textContent='#'+S._cachedRank;
+    else pr.textContent='—';
+  }
 }
 
 function startLBTimer() {
@@ -1201,13 +1243,27 @@ async function claimPrize(prizeId,amount,btn){
 
 // ── FRIENDS ──
 async function loadFriends(){
-  try{ const d=await apiGet({action:'getFriends',uid:S.userId,userId:S.userId}); if(d?.friends){S.friends=d.friends;renderFriends();} }catch(_){}
+  try{
+    const d=await apiGet({action:'getFriends',uid:S.userId,userId:S.userId});
+    if(d?.ok){
+      S.friends=d.friends||[];
+      // Sync actual referral count from server
+      if(d.count !== undefined) { S.refs = d.count; }
+      renderFriends(); renderAll();
+    }
+  }catch(_){}
 }
 function renderFriends(){
   const fl=$('friendList');if(!fl)return;
-  const ct=$('friendCount');if(ct)ct.textContent=S.friends.length||S.refs||0;
-  if(!S.friends.length){fl.innerHTML=`<div style="text-align:center;padding:24px;color:var(--hint);font-size:13px">No referrals yet. Invite friends to earn 500 🪙 each!</div>`;return;}
-  fl.innerHTML=S.friends.map((f,i)=>`<div class="friend-item"><div class="friend-av" style="background:${COLORS[i%COLORS.length]}22;color:${COLORS[i%COLORS.length]}">${(f.name||'P')[0].toUpperCase()}</div><div><div style="font-size:13px;font-weight:700">${f.name||'Player'}</div><div style="font-size:10px;color:var(--hint)">@${f.username||'—'} · ${fmt(f.coins||0)} 🪙</div></div><div style="font-family:'Orbitron';font-size:11px;color:var(--gold);margin-left:auto">+500 🪙</div></div>`).join('');
+  const actualCount=Math.max(S.friends.length, S.refs||0);
+  const ct=$('friendCount');if(ct)ct.textContent=actualCount;
+  if(!S.friends.length){
+    fl.innerHTML=`<div style="text-align:center;padding:24px;color:var(--hint);font-size:13px">
+      ${actualCount>0?`You have ${actualCount} referral${actualCount>1?'s':''} — their details will show here soon.`:'No referrals yet. Invite friends to earn 500 🪙 each!'}
+    </div>`;
+    return;
+  }
+  fl.innerHTML=S.friends.map((f,i)=>`<div class="friend-item"><div class="friend-av" style="background:${COLORS[i%COLORS.length]}22;color:${COLORS[i%COLORS.length]}">${(f.name||'P')[0].toUpperCase()}</div><div><div style="font-size:13px;font-weight:700">${f.name||'Player'}</div><div style="font-size:10px;color:var(--hint)">@${(f.username||'—')} · ${fmt(f.coins||0)} 🪙 · Lv.${f.level||1}</div></div><div style="font-family:'Orbitron';font-size:11px;color:var(--gold);margin-left:auto">+500 🪙</div></div>`).join('');
 }
 
 // ================================================================
@@ -1270,13 +1326,16 @@ let _gameFinished=false;
 
 function openGame(key){
   const cfg=GAME_CFG[key];
-  const isFree=canPlayFree(key);
-  // If onePlay game was already finished (played this session), block
+  // Block if onePlay game already played today
   if(cfg.onePlay && isGameLocked(key)){
     toast('🔒 Already played today! Come back tomorrow.');
     return;
   }
-  if(!isFree&&cfg.betCost>0&&S.coins<cfg.betCost){toast(`❌ Daily free plays used! Need ${cfg.betCost} 🪙.`);return;}
+  const isFree=canPlayFree(key);
+  if(!isFree&&cfg.betCost>0&&S.coins<cfg.betCost){
+    toast(`❌ Daily free plays used! Need ${cfg.betCost} 🪙 to play.`);
+    return;
+  }
 
   _currentGameKey=key;
   _gameFinished=false;
@@ -1303,11 +1362,21 @@ function closeModal(){
 // After a onePlay game finishes, auto-close after delay
 function gameFinished(key){
   _gameFinished=true;
-  if(GAME_CFG[key]?.onePlay){
-    setTimeout(()=>{
-      // Close modal and re-lock the game card
-      closeModal();
-    },2500);
+  const cfg=GAME_CFG[key];
+  if(cfg?.onePlay){
+    // Disable the X close button briefly, show countdown
+    const closeBtn=document.querySelector('#gameModal .modal-close');
+    if(closeBtn){
+      closeBtn.disabled=true;
+      closeBtn.textContent='3';
+      let cnt=2;
+      const iv=setInterval(()=>{
+        closeBtn.textContent=String(cnt--);
+        if(cnt<0){clearInterval(iv);closeBtn.disabled=false;closeBtn.textContent='✕';closeModal();}
+      },1000);
+    } else {
+      setTimeout(()=>closeModal(),3000);
+    }
   }
 }
 
@@ -1671,7 +1740,8 @@ function renderMerge(c){
   function endGame(won){gameEnded=true;clearInterval(timerInterval);
     if(won){addGameCoins(score);const res=$('mergeRes');if(res)res.innerHTML=`🎉 <span style="color:var(--gold)">+${score} 🪙!</span>`;toast('🎮 +'+score+' 🪙!');}
     else{gameLoss();const res=$('mergeRes');if(res)res.textContent='😢 Game Over!';}
-    setTimeout(closeModal,2000);
+    // Merge is not onePlay but still closes after result
+    setTimeout(closeModal,2500);
   }
   c.innerHTML=`<div style="text-align:center;padding:12px">
     <div style="font-family:Orbitron;font-size:13px;color:var(--gold);margin-bottom:12px">Score: <span id="mergeScore">0</span> 🪙 | Timer: <span id="mergeTimer">30</span>s</div>
@@ -1775,7 +1845,10 @@ function renderSnake(c){
       const head={x:(snake[0].x+dir.x+COLS)%COLS,y:(snake[0].y+dir.y+ROWS)%ROWS};
       if(snake.some(s2=>s2.x===head.x&&s2.y===head.y)){clearInterval(window._snakeIv);running2=false;gameOver=true;
         if(score2>0){addGameCoins(score2*10);toast('🐍 +'+score2*10+' 🪙!');}else gameLoss();
-        const st=$('snkSt');if(st)st.textContent='💀 Score:'+score2;$('snkStart').textContent='▶ Retry';$('snkStart').onclick=startSnake;return;}
+        const st=$('snkSt');if(st)st.textContent='💀 Score:'+score2;$('snkStart').textContent='▶ Retry';$('snkStart').onclick=startSnake;
+        // Auto-close after result shown
+        setTimeout(closeModal,3000);
+        return;}
       snake.unshift(head);
       if(head.x===food.x&&head.y===food.y){score2++;addGameCoins(10);const sc=$('snkScore');if(sc)sc.textContent=score2;food={x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)};}else snake.pop();
       draw2();},150);};
@@ -1797,7 +1870,9 @@ function renderCatch(c){
     const tv=setInterval(()=>{t2--;const te=$('cTimer');if(te)te.textContent=t2+'s';
       if(t2<=0){clearInterval(tv);clearInterval(window._catchIv);run3=false;
         if(sc3>0){addGameCoins(sc3*5);toast('🪙 Caught '+sc3+'! +'+sc3*5+' 🪙');}else gameLoss();
-        if(cs){cs.style.display='block';cs.textContent='▶ Play Again';cs.onclick=()=>{run3=false;startCatch();};}
+        if(cs){cs.style.display='block';cs.textContent='✕ Close';cs.onclick=closeModal;}
+        // Auto-close after result
+        setTimeout(closeModal,3000);
       }},1000);
     window._catchIv=setInterval(()=>{if(!run3)return;if(Math.random()<.3)coins3.push({x:Math.random()*260+10,y:-15});
       coins3=coins3.filter(cn=>{cn.y+=4;const bxn=Math.max(0,Math.min(230,bx));if(cn.y>254&&cn.x>bxn&&cn.x<bxn+50){sc3++;const cs2=$('cScore');if(cs2)cs2.textContent=sc3;return false;}return cn.y<300;});drawCatch();},33);};

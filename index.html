@@ -483,16 +483,18 @@ body{
       </div>
 
       <!-- Leaderboard tab -->
-      <div id="adTabLeaderboard" style="display:none">
+            <div id="adTabLeaderboard" style="display:none">
         <div class="admin-section">
           <h3>LEADERBOARD CONTROLS</h3>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
             <button class="btn btn-gold" onclick="adminResetLB('daily')" style="font-size:13px">🔄 Reset Daily<br><small>Send daily prizes</small></button>
             <button class="btn btn-outline" onclick="adminResetLB('weekly')" style="font-size:13px">🔄 Reset Weekly<br><small>Send weekly prizes</small></button>
           </div>
+          <button class="btn btn-outline" onclick="adminResetLB('referrals')" style="font-size:13px;width:100%;margin-bottom:12px;background:rgba(0,200,255,.1);border-color:var(--cyan);color:var(--cyan)">🔄 Reset Referrals<br><small>Send referral prizes & reset counts to 0</small></button>
           <div class="warn-box" style="font-size:12px;">⚠️ Resetting will award prizes to top 10 and notify them via Telegram. Cannot be undone!</div>
         </div>
       </div>
+
 
       <!-- Prizes tab -->
       <div id="adTabPrizes" style="display:none">
@@ -587,7 +589,7 @@ const DAILY_PRIZES  = [5000,3000,2000,1500,1000,800,600,400,300,200];
 const WEEKLY_PRIZES = [50000,30000,20000,15000,10000,8000,6000,4000,3000,2000];
 
 let S = {
-  userId:'',username:'',firstName:'Player',
+  userId:'',username:'',firstName:'Player', photoUrl: '',
   coins:0,totalCoins:0,totalTaps:0,
   energy:500,maxEnergy:500,regenRate:1,tapPower:1,
   tapPwr:1,enCap:1,regen:1,auto:0,
@@ -621,12 +623,39 @@ async function boot() {
 }
 
 async function bootWithTg() {
-  S.userId    = String(tgUser.id);
-  S.username  = tgUser.username || '';
-  S.firstName = tgUser.first_name || 'Player';
-  isAdmin     = S.userId === ADMIN_UID;
+  const rawId = String(tgUser.id);
+  const tgName = tgUser.first_name || 'Player';
+  const tgUsername = tgUser.username || '';
+  const tgPhoto = tgUser.photo_url || '';
 
-  loadLocal(); recalc(); renderAll();
+  // Temporarily set ID to load local save
+  S.userId = rawId;
+  loadLocal(); 
+  
+  // Auto-Update Engine: Check if Telegram data changed since last save
+  if (S.initialized && (S.firstName !== tgName || S.username !== tgUsername || S.photoUrl !== tgPhoto)) {
+      const changes = {
+          oldName: S.firstName, newName: tgName,
+          oldUsername: S.username, newUsername: tgUsername,
+          oldPhoto: S.photoUrl, newPhoto: tgPhoto
+      };
+      
+      S.firstName = tgName;
+      S.username = tgUsername;
+      S.photoUrl = tgPhoto;
+      saveLocal();
+      
+      // Send changes to the bot silently
+      apiPost({action: 'updateProfile', uid: S.userId, changes: changes});
+  } else {
+      // First boot or no changes
+      S.username = tgUsername;
+      S.firstName = tgName;
+      S.photoUrl = tgPhoto;
+  }
+  
+  isAdmin = S.userId === ADMIN_UID;
+  recalc(); renderAll();
   $('app').classList.add('ready');
   hideLoad();
 
@@ -643,7 +672,6 @@ async function bootWithTg() {
 
   try { await apiPost({action:'registerUser',uid:S.userId,uname:S.username,name:S.firstName}); } catch(_){}
 
-  // ── Load from sheet (real-time source of truth) ──
   await loadServer();
 
   const ref = TW?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get('startapp') || '';
@@ -655,13 +683,13 @@ async function bootWithTg() {
   }
 
   S.initialized=true;
-  startRegen(); startAutoTap(); startAutoSave();
-  startAutoSync();
+  startRegen(); startAutoTap(); startAutoSave(); startAutoSync();
   loadTasks(); loadLB('daily'); loadFriends(); loadPrizes();
 
   const urlPrize = new URLSearchParams(location.search).get('claim');
-  if (urlPrize) { setTimeout(()=>goScreen('rank'),1000); }
+  if (urlPrize) setTimeout(()=>goScreen('rank'),1000);
 }
+
 
 window.onTgLogin = function(user) {
   tgUser={id:user.id,username:user.username||'',first_name:user.first_name||'Player'};
@@ -847,12 +875,24 @@ function goScreen(name, btn) {
 }
 
 // ── RENDER ALL ──
-function renderAll() {
+  function renderAll() {
   recalc();
   const lvN=LV_NAMES[Math.min(S.level-1,9)];
   const av=(S.firstName||'P')[0].toUpperCase();
 
-  $('tbAv').textContent=av;
+  const avEl = $('tbAv');
+  const prAvEl = $('prAv');
+  
+  // Render Photo if available, otherwise fallback to initials
+  if (S.photoUrl) {
+    const img = `<img src="${S.photoUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+    if(avEl) { avEl.innerHTML = img; avEl.style.background = 'transparent'; }
+    if(prAvEl) { prAvEl.innerHTML = img; prAvEl.style.background = 'transparent'; }
+  } else {
+    if(avEl) { avEl.innerHTML = av; avEl.style.background = ''; }
+    if(prAvEl) { prAvEl.innerHTML = av; prAvEl.style.background = ''; }
+  }
+
   $('tbName').textContent=S.firstName;
   $('tbLevel').textContent=`Lv.${S.level} · ${lvN}`;
   $('tbCoins').textContent=fmt(S.coins);
